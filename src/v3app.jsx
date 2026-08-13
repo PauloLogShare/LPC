@@ -1,12 +1,11 @@
 import { useState } from "react";
 import logoLogShare from "./assets/logshare-logo.png";
 import "./App.css";
+
 import { readExcel } from "./services/excelService";
 import { processarDados } from "./utils/dataProcessor";
 import { calcularDashboard } from "./utils/dashboardEngine";
 import { calcularPortfolio } from "./utils/portfolioEngine";
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, ComposedChart, Bar, FunnelChart, Funnel, LabelList, Cell, Legend } from "recharts";
-
 
 function App() {
   const [dados, setDados] = useState([]);
@@ -67,14 +66,14 @@ function App() {
     return `${ano}-${mes}-${dia}`;
   };
 
-   const converterInputData = (valor) => {
+  // Versão segura sem caracteres especiais que quebram o compilador do chat
+  const converterInputData = (valor) => {
     if (!valor) return null;
     const ano = valor.substring(0, 4);
     const mes = valor.substring(5, 7);
     const dia = valor.substring(8, 10);
     return new Date(Number(ano), Number(mes) - 1, Number(dia));
   };
-
 
   // ==========================================
   // DASHBOARD INDIVIDUAL
@@ -169,9 +168,6 @@ function App() {
     atualizarPortfolio(dados, dataInicio, valor);
   };
 
-  // ==========================================
-  // ABRIR CLIENTE
-  // ==========================================
   const abrirCliente = (cliente) => {
     setClienteSelecionado(cliente);
     setVisao("poc");
@@ -246,7 +242,7 @@ function App() {
   };
 
   // ==========================================
-  // RENDER
+  // RENDER PRINCIPAL
   // ==========================================
   return (
     <div className={`lpc-app-shell ${menuRecolhido ? "sidebar-collapsed" : ""}`}>
@@ -271,7 +267,9 @@ function App() {
           <span className="lpc-breadcrumb-separator">/</span>
           <strong>LPC</strong>
         </div>
-                <div className="lpc-platform-right" style={{ display: "flex", alignItems: "center", gap: "24px" }}>
+
+        {/* CABEÇALHO COM OS NOVOS FILTROS SUPER ALINHADOS */}
+        <div className="lpc-platform-right" style={{ display: "flex", alignItems: "center", gap: "24px" }}>
           
           {/* FILTRO DE CLIENTE ESTILIZADO */}
           {visao === "poc" && dados.length > 0 && (
@@ -286,7 +284,7 @@ function App() {
                   appearance: "none",
                   backgroundColor: "transparent",
                   border: "none",
-                  fontWeight: "900",
+                  fontWeight: "950",
                   fontSize: "14px",
                   color: "#123B5D",
                   cursor: "pointer",
@@ -373,7 +371,6 @@ function App() {
             )}
           </div>
 
-          {/* ÍCONES DA DIREITA */}
           <button className="lpc-header-action" aria-label="Notificações">
             ◧
             <i>1</i>
@@ -383,6 +380,7 @@ function App() {
           </div>
         </div>
       </header>
+
       <div className="lpc-platform-body">
         <aside className="lpc-sidebar">
           <nav className="lpc-sidebar-nav" aria-label="Navegação LPC">
@@ -448,6 +446,7 @@ function App() {
               </Section>
             </div>
           )}
+
           {mensagem && (
             <div
               style={{
@@ -513,6 +512,61 @@ function SidebarItem({ icon, label, collapsed, active = false, expandable = fals
 }
 
 // ==========================================
+// VISÃO DA POC
+// ==========================================
+function VisaoPoc({ dashboard, formatarMoeda, formatarNumero, formatarPercentual }) {
+  return (
+    <>
+      <Section title="Avaliação Executiva da POC">
+        <ResumoExecutivo dashboard={dashboard} />
+      </Section>
+      <Section title="KPIs Estratégicos da POC | GO ≥80% | ACOMPANHAR 60–79% | NO-GO <60%">
+        <div className="lpc-strategic-kpi-grid">
+          <StrategicScorePanel score={dashboard.score} status={dashboard.statusScore} />
+          {Object.values(dashboard.indicadoresScore || {}).map((item) => (
+            <StrategicKpiCard key={item.nome} item={item} />
+          ))}
+        </div>
+      </Section>
+      <Section title="Evolução do Score">
+        <HistoricoScore historico={dashboard.historicoScore || []} />
+      </Section>
+      <Section title="Indicadores da Malha">
+        <Grid>
+          <KpiCard titulo="Rotas Totais" valor={formatarNumero(dashboard.rotasTotais)} />
+          <KpiCard titulo="Rotas Disponibilizadas" valor={formatarNumero(dashboard.rotasDisponibilizadas)} />
+          <KpiCard titulo="Rotas com Sinergia" valor={formatarNumero(dashboard.rotasSinergia)} />
+          <KpiCard titulo="Oportunidades" valor={formatarNumero(dashboard.oportunidades)} />
+        </Grid>
+      </Section>
+      <Section title="Operação">
+        <Grid>
+          <KpiCard titulo="Rotas Executadas" valor={formatarNumero(dashboard.rotasExecutadas)} />
+          <KpiCard titulo="Embarques Planejados" valor={formatarNumero(dashboard.embarquesPlanejados)} />
+          <KpiCard titulo="Embarques Realizados" valor={formatarNumero(dashboard.embarquesRealizados)} />
+          <KpiCard titulo="Usuários Ativos" valor={formatarNumero(dashboard.usuariosAtivos)} />
+        </Grid>
+      </Section>
+      <Section title="Financeiro">
+        <Grid>
+          <KpiCard titulo="Baseline" valor={formatarMoeda(dashboard.baseline)} />
+          <KpiCard titulo="Custo LogShare" valor={formatarMoeda(dashboard.realizado)} />
+          <KpiCard titulo="Saving" valor={formatarMoeda(dashboard.saving)} />
+          <KpiCard titulo="ROI" valor={dashboard.roi === null ? "N/A" : formatarPercentual(dashboard.roi)} />
+        </Grid>
+      </Section>
+      <Section title="Sustentabilidade">
+        <Grid>
+          <KpiCard titulo="CO₂ Evitado" valor={`${formatarNumero(dashboard.co2)} kg`} />
+          <KpiCard titulo="Árvores" valor={formatarNumero(dashboard.arvores)} />
+          <KpiCard titulo="Campos de Futebol" valor={formatarNumero(dashboard.camposFutebol)} />
+        </Grid>
+      </Section>
+    </>
+  );
+}
+
+// ==========================================
 // VISÃO C-LEVEL
 // ==========================================
 function VisaoCLevel({ portfolio, formatarMoeda, formatarNumero, formatarPercentual, abrirCliente }) {
@@ -552,62 +606,7 @@ function VisaoCLevel({ portfolio, formatarMoeda, formatarNumero, formatarPercent
 }
 
 // ==========================================
-// KPI ESTRATÉGICO CARD (RECUPERADO COM INFORMAÇÕES E BORDA)
-// ==========================================
-function StrategicKpiCard({ item }) {
-  let cor = "#dc2626";
-  let bgCor = "#fef2f2";
-  let statusLabel = "Abaixo da meta";
-  if (item.status === "verde") { cor = "#16a34a"; bgCor = "#f0fdf4"; statusLabel = "Atingiu meta"; }
-  else if (item.status === "amarelo") { cor = "#d97706"; bgCor = "#fffbeb"; statusLabel = "Atenção"; }
-  else if (item.status === "na") { cor = "#6b7280"; bgCor = "#f3f4f6"; statusLabel = "N/A"; }
-  
-  const atingimento = item.atingimento === null || item.atingimento === undefined ? "N/A" : `${Number(item.atingimento).toFixed(1)}%`;
-  
-  // RECUPERANDO A INFORMAÇÃO DE CONTRIBUIÇÃO QUE HAVIA SUMIDO
-  const contribuicao = item.contribuicao === null || item.contribuicao === undefined ? "N/A" : `+${Number(item.contribuicao).toFixed(2)} pts`;
-  
-  return (
-    <div style={{ backgroundColor: "#ffffff", padding: "24px", borderRadius: "16px", border: "1px solid #f3f4f6", borderBottom: `6px solid ${cor}`, boxShadow: "0 4px 12px rgba(0,0,0,0.03)", display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
-      <div>
-        <div style={{ fontSize: "15px", fontWeight: "800", color: "#111827", marginBottom: "4px" }}>{item.nome}</div>
-        <div style={{ fontSize: "12px", color: "#6b7280", fontWeight: "500", marginBottom: "16px" }}>Peso do KPI: {Number(item.pesoEfetivo || 0).toFixed(0)}%</div>
-      </div>
-      
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: "16px", paddingBottom: "16px", borderBottom: "1px solid #f3f4f6" }}>
-        <div>
-          <div style={{ fontSize: "11px", color: "#9ca3af", fontWeight: "bold", textTransform: "uppercase" }}>Resultado</div>
-          <div style={{ fontSize: "20px", fontWeight: "900", color: "#111827" }}>{formatarResultado(item)}</div>
-        </div>
-        <div style={{ textAlign: "right" }}>
-          <div style={{ fontSize: "11px", color: "#9ca3af", fontWeight: "bold", textTransform: "uppercase" }}>Meta</div>
-          <div style={{ fontSize: "16px", fontWeight: "700", color: "#4b5563" }}>{formatarMeta(item)}</div>
-        </div>
-      </div>
-
-      {/* LINHA DE INFORMAÇÕES RECUPERADA E ALINHADA */}
-      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "16px" }}>
-        <div>
-          <div style={{ fontSize: "11px", color: "#9ca3af", fontWeight: "bold", textTransform: "uppercase" }}>Atingimento</div>
-          <div style={{ fontSize: "14px", fontWeight: "800", color: cor }}>{atingimento}</div>
-        </div>
-        <div style={{ textAlign: "right" }}>
-          <div style={{ fontSize: "11px", color: "#9ca3af", fontWeight: "bold", textTransform: "uppercase" }}>Contribuição</div>
-          <div style={{ fontSize: "14px", fontWeight: "800", color: cor }}>{contribuicao}</div>
-        </div>
-      </div>
-
-      <div style={{ display: "flex", justifyContent: "flex-start", alignItems: "center" }}>
-        <div style={{ backgroundColor: bgCor, color: cor, padding: "4px 10px", borderRadius: "6px", fontSize: "12px", fontWeight: "bold" }}>
-          {statusLabel}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ==========================================
-// CARD EXECUTIVO DA POC (CLIENTES EM POC - COMPLETO)
+// CARD EXECUTIVO DA POC (PADRONIZADO)
 // ==========================================
 function PocExecutiveCard({ poc, formatarPercentual, abrirCliente }) {
   const score = Number(poc.score || 0);
@@ -628,7 +627,6 @@ function PocExecutiveCard({ poc, formatarPercentual, abrirCliente }) {
   if (poc.recomendacao === "GO") { recomendacaoCor = "#16a34a"; bgRecomendacao = "#f0fdf4"; }
   else if (poc.recomendacao === "GO COM ACOMPANHAMENTO") { recomendacaoCor = "#d97706"; bgRecomendacao = "#fffbeb"; }
 
-  // Recuperando a variável de atenção que estava no código original
   const atencao = poc.principalAtencao;
 
   return (
@@ -640,7 +638,7 @@ function PocExecutiveCard({ poc, formatarPercentual, abrirCliente }) {
         padding: "24px", 
         borderRadius: "16px", 
         border: "1px solid #f3f4f6",
-        borderBottom: `6px solid ${corScore}`, 
+        borderTop: `6px solid ${corScore}`, 
         boxShadow: "0 4px 12px rgba(0,0,0,0.03)", 
         cursor: "pointer",
         display: "flex",
@@ -649,7 +647,6 @@ function PocExecutiveCard({ poc, formatarPercentual, abrirCliente }) {
         height: "100%"
       }}
     >
-      {/* 1. CABEÇALHO */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
         <div style={{ fontSize: "18px", fontWeight: "bold", color: "#111827" }}>{poc.cliente}</div>
         <div style={{ textAlign: "right" }}>
@@ -658,7 +655,6 @@ function PocExecutiveCard({ poc, formatarPercentual, abrirCliente }) {
         </div>
       </div>
 
-      {/* 2. TENDÊNCIA */}
       <div style={{ display: "flex", alignItems: "center", gap: "14px", marginBottom: "20px", padding: "12px 16px", backgroundColor: "#f9fafb", borderRadius: "12px" }}>
         <div style={{ fontWeight: "bold", color: tendenciaCor, fontSize: "14px" }}>
           {variacao === null ? "N/A" : `${variacao >= 0 ? "+" : ""}${variacao.toFixed(1)} pts`}
@@ -666,39 +662,13 @@ function PocExecutiveCard({ poc, formatarPercentual, abrirCliente }) {
         <div style={{ marginLeft: "auto", fontWeight: "600", color: tendenciaCor, fontSize: "13px" }}>{tendenciaTexto}</div>
       </div>
 
-      {/* 3. RECOMENDAÇÃO */}
       <div style={{ marginBottom: "20px", padding: "16px", backgroundColor: bgRecomendacao, borderRadius: "12px" }}>
         <div style={{ fontSize: "11px", color: recomendacaoCor, marginBottom: "4px", fontWeight: "bold", textTransform: "uppercase" }}>RECOMENDAÇÃO</div>
         <div style={{ fontWeight: "900", color: recomendacaoCor, fontSize: "14px" }}>
           {poc.recomendacao}
         </div>
       </div>
-
-      {/* 4. STATUS INDICADORES (RECUPERADO) */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "8px", marginBottom: "20px" }}>
-        <IndicatorCount numero={poc.indicadoresDentro} label="Dentro" cor="#16a34a" fundo="#f0fdf4" icone="check" />
-        <IndicatorCount numero={poc.indicadoresAtencao} label="Atenção" cor="#d97706" fundo="#fffbeb" icone="warning" />
-        <IndicatorCount numero={poc.indicadoresFora} label="Fora" cor="#dc2626" fundo="#fef2f2" icone="close" />
-      </div>
-
-      {/* 5. PRINCIPAL PONTO DE ATENÇÃO (RECUPERADO) */}
-      <div style={{ borderTop: "1px solid #e5e7eb", paddingTop: "16px", marginBottom: "16px" }}>
-        <div style={{ fontSize: "11px", color: "#6b7280", marginBottom: "8px", fontWeight: "bold", textTransform: "uppercase" }}>PRINCIPAL PONTO DE ATENÇÃO</div>
-        {atencao ? (
-          <>
-            <div style={{ fontSize: "14px", fontWeight: "800", color: "#dc2626", marginBottom: "4px" }}>
-              {atencao.nome}
-            </div>
-            <div style={{ fontSize: "12px", color: "#6b7280" }}>
-              <strong style={{ color: "#dc2626" }}>{formatarResultado(atencao)}</strong> | Meta: {formatarMeta(atencao)}
-            </div>
-          </>
-        ) : (
-          <div style={{ color: "#16a34a", fontWeight: "bold", fontSize: "13px" }}>✓ Nenhum ponto crítico</div>
-        )}
-      </div>
       
-      {/* 6. LINK DE DETALHES */}
       <div style={{ marginTop: "auto", fontSize: "13px", color: "#2563eb", textAlign: "right", fontWeight: "600" }}>
         Ver detalhes da POC →
       </div>
@@ -841,108 +811,59 @@ function ResumoExecutivo({ dashboard }) {
 }
 
 // ==========================================
-// HISTÓRICO SCORE (COM RECHARTS E LINHA DE META)
+// HISTÓRICO SCORE
 // ==========================================
 function HistoricoScore({ historico }) {
   if (!historico || historico.length === 0) {
     return (
       <div style={{ padding: "30px", textAlign: "center", color: "#6b7280", backgroundColor: "#f9fafb", borderRadius: "10px" }}>
-        Não existem dados históricos para gerar o gráfico.
+        Não existem dados históricos.
       </div>
     );
   }
-
-  // 1. Preparando os dados para a Recharts entender (Formatando o mês e o número)
-  const dadosFormatados = historico.map((item) => ({
-    mes: formatarMes(item.mesReferencia),
-    score: Number(item.score || 0)
-  }));
-
-  // 2. Customizando a caixinha preta (Tooltip) que aparece ao passar o mouse
-  const CustomTooltip = ({ active, payload, label }) => {
-    if (active && payload && payload.length) {
-      const valor = Number(payload[0].value);
-      // Cor dinâmica baseada na nota
-      const cor = valor >= 80 ? "#16a34a" : valor >= 60 ? "#d97706" : "#dc2626";
-      return (
-        <div style={{ backgroundColor: "#fff", padding: "16px", border: "1px solid #f3f4f6", borderRadius: "12px", boxShadow: "0 4px 20px rgba(0,0,0,0.08)" }}>
-          <p style={{ margin: "0 0 8px 0", fontSize: "12px", color: "#6b7280", fontWeight: "700", textTransform: "uppercase" }}>{label}</p>
-          <p style={{ margin: 0, fontSize: "24px", fontWeight: "900", color: cor }}>
-            {valor.toFixed(1)} <span style={{ fontSize: "12px", color: "#9ca3af" }}>pts</span>
-          </p>
-        </div>
-      );
-    }
-    return null;
-  };
-
+  const maiorScore = Math.max(100, ...historico.map((item) => Number(item.score || 0)));
   return (
-    <div style={{ width: "100%", height: "350px", backgroundColor: "#ffffff", padding: "24px", borderRadius: "16px", border: "1px solid #f3f4f6", boxShadow: "0 4px 12px rgba(0,0,0,0.03)" }}>
-      {/* Container que faz a mágica de esticar ou encolher na tela */}
-      <ResponsiveContainer width="100%" height="100%">
-        <LineChart data={dadosFormatados} margin={{ top: 20, right: 30, left: 0, bottom: 10 }}>
-          {/* Grade de fundo (apenas linhas horizontais sutis) */}
-          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
-          
-          {/* Eixos X (Meses) e Y (0 a 100) */}
-          <XAxis dataKey="mes" axisLine={false} tickLine={false} tick={{ fill: '#9ca3af', fontSize: 12, fontWeight: 600 }} dy={10} />
-          <YAxis domain={[0, 100]} axisLine={false} tickLine={false} tick={{ fill: '#9ca3af', fontSize: 12, fontWeight: 600 }} />
-          
-          {/* Tooltip flutuante ao passar o mouse */}
-          <Tooltip content={<CustomTooltip />} cursor={{ stroke: '#f3f4f6', strokeWidth: 2 }} />
-          
-          {/* A MÁGICA DA META: Linha de referência no eixo Y = 80 */}
-          <ReferenceLine 
-            y={80} 
-            stroke="#16a34a" 
-            strokeDasharray="5 5" 
-            strokeWidth={2}
-            label={{ position: 'top', value: 'META (80)', fill: '#16a34a', fontSize: 11, fontWeight: 'bold' }} 
-          />
-          
-          {/* A linha do gráfico com bolinhas interativas */}
-          <Line 
-            type="monotone" 
-            dataKey="score" 
-            stroke="#123B5D" 
-            strokeWidth={4} 
-            dot={{ r: 6, fill: "#ffffff", stroke: "#123B5D", strokeWidth: 3 }} 
-            activeDot={{ r: 8, fill: "#123B5D", stroke: "#ffffff", strokeWidth: 3 }} 
-            animationDuration={1500}
-          />
-        </LineChart>
-      </ResponsiveContainer>
+    <div className="lpc-history">
+      <div className="lpc-history-chart">
+        <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-around", height: "260px", gap: "20px" }}>
+          {historico.map((item) => {
+            const score = Number(item.score || 0);
+            const altura = Math.max(8, (score / maiorScore) * 200);
+            const cor = score >= 80 ? "#16a34a" : score >= 60 ? "#d97706" : "#dc2626";
+            return (
+              <div className="lpc-history-bar-wrap" key={item.mesReferencia}>
+                <div className="lpc-history-score" style={{ color: cor }}>{score.toFixed(1)}</div>
+                <div className="lpc-history-bar" style={{ height: `${altura}px`, backgroundColor: cor }} />
+                <div className="lpc-history-month">{formatarMes(item.mesReferencia)}</div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
     </div>
   );
 }
 
 // ==========================================
-// PAINEL ESTRATÉGICO DOS KPIs DA POC
+// PAINEL ESTRATÉGICO DOS KPIs (Gráfico Circular)
 // ==========================================
 function StrategicScorePanel({ score, status }) {
   const valor = Number(score || 0);
-  let cor = "#d9232e";
+  let cor = "#dc2626";
   let leitura = "NO-GO";
   let faixa = "< 60%";
-  if (valor >= 80) { cor = "#22963a"; leitura = "GO"; faixa = "≥ 80%"; }
-  else if (valor >= 60) { cor = "#ee9f00"; leitura = "ACOMPANHAR"; faixa = "60% – 79%"; }
-  const raio = 42;
-  const circunferencia = 2 * Math.PI * raio;
-  const progresso = Math.min(Math.max(valor, 0), 100);
-  const dash = (progresso / 100) * circunferencia;
+  if (valor >= 80) { cor = "#16a34a"; leitura = "GO"; faixa = "≥ 80%"; }
+  else if (valor >= 60) { cor = "#d97706"; leitura = "ACOMPANHAR"; faixa = "60% – 79%"; }
+  
   return (
-    <div className={`lpc-strategic-score-panel ${valor >= 80 ? "score-go" : valor >= 60 ? "score-warning" : "score-danger"}`} style={{ "--score-color": cor }}>
-      <div className="lpc-strategic-score-title">SCORE POC</div>
-      <div className="lpc-score-ring">
-        <svg viewBox="0 0 110 110" aria-hidden="true">
-          <circle cx="55" cy="55" r={raio} className="lpc-score-ring-track" />
-          <circle cx="55" cy="55" r={raio} className="lpc-score-ring-progress" strokeDasharray={`${dash} ${circunferencia}`} />
-        </svg>
-        <strong>{valor.toFixed(0)}%</strong>
+    <div style={{ backgroundColor: "#ffffff", padding: "24px", borderRadius: "16px", border: "1px solid #f3f4f6", boxShadow: "0 4px 12px rgba(0,0,0,0.03)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
+      <div style={{ fontSize: "12px", color: "#6b7280", fontWeight: "700", letterSpacing: "1px", marginBottom: "16px" }}>DESEMPENHO GERAL</div>
+      <div style={{ position: "relative", display: "flex", alignItems: "center", justifyContent: "center", width: "120px", height: "120px", borderRadius: "50%", border: `8px solid ${cor}33`, borderTopColor: cor }}>
+        <div style={{ fontSize: "32px", fontWeight: "900", color: "#111827" }}>{valor.toFixed(0)}%</div>
       </div>
-      <div className="lpc-score-performance">Desempenho Geral</div>
-      <div className="lpc-score-current-status" style={{ color: cor }}>
-        <strong>{leitura}</strong><small>{faixa}</small>
+      <div style={{ marginTop: "20px", textAlign: "center" }}>
+        <div style={{ fontWeight: "900", color: cor, fontSize: "18px" }}>{leitura}</div>
+        <div style={{ fontSize: "13px", color: "#9ca3af", fontWeight: "500", marginTop: "4px" }}>{faixa}</div>
       </div>
     </div>
   );
@@ -963,6 +884,48 @@ function StrategicKpiIcon({ nome }) {
   return <div className="lpc-strategic-kpi-icon" aria-hidden="true">{simbolo}</div>;
 }
 
+// ==========================================
+// KPI ESTRATÉGICO CARD (LISTA DE INDICADORES PADRONIZADO)
+// ==========================================
+function StrategicKpiCard({ item }) {
+  let cor = "#dc2626";
+  let bgCor = "#fef2f2";
+  let statusLabel = "Abaixo da meta";
+  if (item.status === "verde") { cor = "#16a34a"; bgCor = "#f0fdf4"; statusLabel = "Atingiu meta"; }
+  else if (item.status === "amarelo") { cor = "#d97706"; bgCor = "#fffbeb"; statusLabel = "Atenção"; }
+  else if (item.status === "na") { cor = "#6b7280"; bgCor = "#f3f4f6"; statusLabel = "N/A"; }
+  
+  const atingimento = item.atingimento === null || item.atingimento === undefined ? "N/A" : `${Number(item.atingimento).toFixed(1)}%`;
+  
+  return (
+    <div style={{ backgroundColor: "#ffffff", padding: "24px", borderRadius: "16px", border: "1px solid #f3f4f6", boxShadow: "0 4px 12px rgba(0,0,0,0.03)", display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
+      <div>
+        <div style={{ fontSize: "15px", fontWeight: "800", color: "#111827", marginBottom: "4px" }}>{item.nome}</div>
+        <div style={{ fontSize: "12px", color: "#6b7280", fontWeight: "500", marginBottom: "16px" }}>Peso do KPI: {Number(item.pesoEfetivo || 0).toFixed(0)}%</div>
+      </div>
+      
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: "16px", paddingBottom: "16px", borderBottom: "1px solid #f3f4f6" }}>
+        <div>
+          <div style={{ fontSize: "11px", color: "#9ca3af", fontWeight: "bold", textTransform: "uppercase" }}>Resultado</div>
+          <div style={{ fontSize: "20px", fontWeight: "900", color: "#111827" }}>{formatarResultado(item)}</div>
+        </div>
+        <div style={{ textAlign: "right" }}>
+          <div style={{ fontSize: "11px", color: "#9ca3af", fontWeight: "bold", textTransform: "uppercase" }}>Meta</div>
+          <div style={{ fontSize: "16px", fontWeight: "700", color: "#4b5563" }}>{formatarMeta(item)}</div>
+        </div>
+      </div>
+
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <div style={{ backgroundColor: bgCor, color: cor, padding: "4px 10px", borderRadius: "6px", fontSize: "12px", fontWeight: "bold" }}>
+          {statusLabel}
+        </div>
+        <div style={{ fontSize: "13px", fontWeight: "700", color: cor }}>
+          Atingiu: {atingimento}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 // ==========================================
 // SCORE KPI
@@ -1007,16 +970,18 @@ function ExecutiveCard({ titulo, valor, detalhe, cor }) {
 }
 
 // ==========================================
-// RESUMO C-LEVEL
+// RESUMO C-LEVEL (Cards do Topo - Padronizado)
 // ==========================================
 function ExecutiveSummaryCard({ icone, titulo, valor, detalhe, cor = "#123B5D", fundo = "#edf3f8" }) {
   return (
-    <div className="lpc-summary-card">
-      <div className="lpc-summary-icon" style={{ color: cor, backgroundColor: fundo }}><SummaryIcon tipo={icone} /></div>
-      <div className="lpc-summary-content">
-        <div className="lpc-summary-label">{titulo}</div>
-        <div className="lpc-summary-value" style={{ color: cor }}>{valor}</div>
-        <div className="lpc-summary-detail">{detalhe}</div>
+    <div style={{ backgroundColor: "#ffffff", padding: "20px", borderRadius: "16px", border: "1px solid #f3f4f6", borderBottom: `4px solid ${cor}`, boxShadow: "0 4px 12px rgba(0,0,0,0.03)", display: "flex", alignItems: "center", gap: "16px" }}>
+      <div style={{ color: cor, backgroundColor: fundo, width: "48px", height: "48px", borderRadius: "12px", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+        <SummaryIcon tipo={icone} />
+      </div>
+      <div>
+        <div style={{ fontSize: "12px", color: "#6b7280", fontWeight: "600", textTransform: "uppercase", letterSpacing: "0.5px" }}>{titulo}</div>
+        <div style={{ fontSize: "24px", fontWeight: "900", color: "#111827", margin: "2px 0" }}>{valor}</div>
+        <div style={{ fontSize: "13px", color: "#9ca3af", fontWeight: "500" }}>{detalhe}</div>
       </div>
     </div>
   );
@@ -1066,13 +1031,13 @@ function Grid({ children }) {
 }
 
 // ==========================================
-// KPI CARD
+// KPI CARD (OPERACIONAIS E FINANCEIROS PADRONIZADOS)
 // ==========================================
 function KpiCard({ titulo, valor }) {
   return (
-    <div className="lpc-kpi-card">
-      <div className="lpc-kpi-label">{titulo}</div>
-      <div className="lpc-kpi-value">{valor}</div>
+    <div style={{ backgroundColor: "#ffffff", padding: "24px", borderRadius: "16px", border: "1px solid #f3f4f6", boxShadow: "0 4px 12px rgba(0,0,0,0.03)" }}>
+      <div style={{ fontSize: "12px", color: "#6b7280", fontWeight: "600", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: "8px" }}>{titulo}</div>
+      <div style={{ fontSize: "28px", fontWeight: "900", color: "#111827" }}>{valor}</div>
     </div>
   );
 }
@@ -1100,7 +1065,7 @@ function formatarMeta(item) {
 }
 
 // ==========================================
-// FORMATAR MÊS
+// FORMATAR MÊS (Versão segura sem chaves ou colchetes complexos)
 // ==========================================
 function formatarMes(referencia) {
   if (!referencia) {
@@ -1132,164 +1097,6 @@ const buttonActive = { padding: "11px 20px", border: "none", borderRadius: "7px"
 const buttonInactive = { padding: "11px 20px", border: "1px solid #d1d5db", borderRadius: "7px", backgroundColor: "#ffffff", color: "#374151", fontWeight: "bold", cursor: "pointer" };
 const scoreLine = { display: "flex", justifyContent: "space-between", marginBottom: "8px" };
 const scoreLabel = { color: "#6b7280", fontSize: "13px" };
-// ==========================================
-// VISÃO DA POC (Passando os dados reais para os gráficos)
-// ==========================================
-function VisaoPoc({ dashboard, formatarMoeda, formatarNumero, formatarPercentual }) {
-  return (
-    <>
-      <Section title="Avaliação Executiva da POC">
-        <ResumoExecutivo dashboard={dashboard} />
-      </Section>
-
-      <Section title="Análise de Performance Operacional">
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: '24px' }}>
-          {/* Agora estamos enviando o objeto 'dashboard' para dentro dos gráficos */}
-          <GraficoEvolucaoEmbarques dashboard={dashboard} />
-          <GraficoFunilOportunidades dashboard={dashboard} />
-        </div>
-      </Section>
-
-      <Section title="KPIs Estratégicos da POC | GO ≥80% | ACOMPANHAR 60–79% | NO-GO <60%">
-        <div className="lpc-strategic-kpi-grid">
-          <StrategicScorePanel score={dashboard.score} status={dashboard.statusScore} />
-          {Object.values(dashboard.indicadoresScore || {}).map((item) => (
-            <StrategicKpiCard key={item.nome} item={item} />
-          ))}
-        </div>
-      </Section>
-      <Section title="Evolução do Score">
-        <HistoricoScore historico={dashboard.historicoScore || []} />
-      </Section>
-      <Section title="Indicadores da Malha">
-        <Grid>
-          <KpiCard titulo="Rotas Totais" valor={formatarNumero(dashboard.rotasTotais)} />
-          <KpiCard titulo="Rotas Disponibilizadas" valor={formatarNumero(dashboard.rotasDisponibilizadas)} />
-          <KpiCard titulo="Rotas com Sinergia" valor={formatarNumero(dashboard.rotasSinergia)} />
-          <KpiCard titulo="Oportunidades" valor={formatarNumero(dashboard.oportunidades)} />
-        </Grid>
-      </Section>
-      <Section title="Operação">
-        <Grid>
-          <KpiCard titulo="Rotas Executadas" valor={formatarNumero(dashboard.rotasExecutadas)} />
-          <KpiCard titulo="Embarques Planejados" valor={formatarNumero(dashboard.embarquesPlanejados)} />
-          <KpiCard titulo="Embarques Realizados" valor={formatarNumero(dashboard.embarquesRealizados)} />
-          <KpiCard titulo="Usuários Ativos" valor={formatarNumero(dashboard.usuariosAtivos)} />
-        </Grid>
-      </Section>
-      <Section title="Financeiro">
-        <Grid>
-          <KpiCard titulo="Baseline" valor={formatarMoeda(dashboard.baseline)} />
-          <KpiCard titulo="Custo LogShare" valor={formatarMoeda(dashboard.realizado)} />
-          <KpiCard titulo="Saving" valor={formatarMoeda(dashboard.saving)} />
-          <KpiCard titulo="ROI" valor={dashboard.roi === null ? "N/A" : formatarPercentual(dashboard.roi)} />
-        </Grid>
-      </Section>
-      <Section title="Sustentabilidade">
-        <Grid>
-          <KpiCard titulo="CO₂ Evitado" valor={`${formatarNumero(dashboard.co2)} kg`} />
-          <KpiCard titulo="Árvores" valor={formatarNumero(dashboard.arvores)} />
-          <KpiCard titulo="Campos de Futebol" valor={formatarNumero(dashboard.camposFutebol)} />
-        </Grid>
-      </Section>
-    </>
-  );
-}
-
-// ==========================================
-// GRÁFICO 1: EVOLUÇÃO DE EMBARQUES E ADERÊNCIA (DINÂMICO)
-// ==========================================
-function GraficoEvolucaoEmbarques({ dashboard }) {
-  // Puxa o histórico real calculado a partir do Excel
-  const historico = dashboard?.historicoScore || [];
-
-  // Mapeia os dados do histórico para o formato que a Recharts entende
-  const dados = historico.map(item => {
-    const planejados = Number(item.embarquesPlanejados || 0);
-    const realizados = Number(item.embarquesRealizados || 0);
-    // Se houver embarques, calcula a aderência real, senão usa o Score geral
-    const aderencia = planejados > 0 ? Math.round((realizados / planejados) * 100) : Number(item.score || 0);
-    
-    return {
-      mes: formatarMes(item.mesReferencia),
-      planejados,
-      realizados,
-      aderencia
-    };
-  });
-
-  return (
-    <div style={{ width: "100%", height: "420px", backgroundColor: "#ffffff", padding: "24px", borderRadius: "16px", border: "1px solid #f3f4f6", boxShadow: "0 4px 12px rgba(0,0,0,0.03)", display: "flex", flexDirection: "column" }}>
-      <h3 style={{ margin: '0 0 16px 0', fontSize: '16px', fontWeight: '800', color: '#111827' }}>Evolução de Embarques e Aderência</h3>
-      
-      {dados.length === 0 ? (
-        <div style={{ display: "flex", flex: 1, alignItems: "center", justifyContent: "center", color: "#9ca3af" }}>Sem dados históricos suficientes.</div>
-      ) : (
-        <ResponsiveContainer width="99%" height="100%">
-          <ComposedChart data={dados} margin={{ top: 10, right: 10, left: 0, bottom: 20 }}>
-            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" />
-            <XAxis dataKey="mes" axisLine={false} tickLine={false} tick={{ fill: '#4b5563', fontSize: 12, fontWeight: 600 }} dy={10} />
-            <YAxis yAxisId="esquerda" axisLine={false} tickLine={false} tick={{ fill: '#4b5563', fontSize: 12, fontWeight: 600 }} />
-            <YAxis yAxisId="direita" orientation="right" domain={[0, 100]} axisLine={false} tickLine={false} tick={{ fill: '#4b5563', fontSize: 12, fontWeight: 600 }} tickFormatter={(val) => `${val}%`} />
-            <Tooltip contentStyle={{ backgroundColor: '#fff', border: '1px solid #e5e7eb', borderRadius: '12px', fontWeight: "bold", color: "#1f2937" }} />
-            <Legend verticalAlign="bottom" height={36} iconType="circle" wrapperStyle={{ fontSize: "13px", fontWeight: "700", color: "#374151", paddingTop: "24px" }} />
-            
-            <Bar yAxisId="esquerda" dataKey="planejados" name="Planejados" fill="#38bdf8" radius={[4, 4, 0, 0]} maxBarSize={35} />
-            <Bar yAxisId="esquerda" dataKey="realizados" name="Realizados" fill="#0369a1" radius={[4, 4, 0, 0]} maxBarSize={35} />
-            <Line yAxisId="direita" type="monotone" dataKey="aderencia" name="Aderência" stroke="#f59e0b" strokeWidth={3} dot={{ r: 4 }} activeDot={{ r: 6 }} />
-          </ComposedChart>
-        </ResponsiveContainer>
-      )}
-    </div>
-  );
-}
-
-// ==========================================
-// GRÁFICO 2: FUNIL DE OPORTUNIDADES (DINÂMICO)
-// ==========================================
-function GraficoFunilOportunidades({ dashboard }) {
-  if (!dashboard) return null;
-
-  // Extraindo os totais do período selecionado do objeto dashboard real
-  const totais = Number(dashboard.rotasTotais || 0);
-  const disponiveis = Number(dashboard.rotasDisponibilizadas || 0);
-  const match = Number(dashboard.rotasSinergia || 0);
-  const oportunidades = Number(dashboard.oportunidades || 0);
-  const executadas = Number(dashboard.rotasExecutadas || 0);
-
-  // Criando as 5 etapas que você solicitou com as conversões calculadas em cascata
-  const dados = [
-    { name: 'Rotas Totais', value: totais, conversao: '100%' },
-    { name: 'Disponibilizadas', value: disponiveis, conversao: totais ? Math.round((disponiveis/totais)*100)+'%' : '0%' },
-    { name: 'Rotas com Match', value: match, conversao: disponiveis ? Math.round((match/disponiveis)*100)+'%' : '0%' },
-    { name: 'Oportunidades Identif.', value: oportunidades, conversao: match ? Math.round((oportunidades/match)*100)+'%' : '0%' },
-    { name: 'Rotas Executadas', value: executadas, conversao: oportunidades ? Math.round((executadas/oportunidades)*100)+'%' : '0%' },
-  ];
-  
-  const cores = ['#0891b2', '#0e7490', '#155e75', '#164e63', '#083344'];
-
-  return (
-    <div style={{ width: "100%", height: "420px", backgroundColor: "#ffffff", padding: "24px", borderRadius: "16px", border: "1px solid #f3f4f6", boxShadow: "0 4px 12px rgba(0,0,0,0.03)", display: "flex", flexDirection: "column" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
-        <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '800', color: '#111827' }}>Funil de Oportunidades</h3>
-        <span style={{ fontSize: "11px", color: "#6b7280", fontWeight: "bold", backgroundColor: "#f3f4f6", padding: "4px 8px", borderRadius: "6px" }}>PERÍODO SELECIONADO</span>
-      </div>
-      
-      <ResponsiveContainer width="99%" height="100%">
-        <FunnelChart margin={{ top: 20, right: 160, left: 20, bottom: 20 }}>
-          <Tooltip contentStyle={{ backgroundColor: '#fff', border: '1px solid #e5e7eb', borderRadius: '12px', fontWeight: "bold" }} />
-          <Funnel dataKey="value" data={dados} isAnimationActive>
-            {dados.map((entry, index) => (
-              <Cell key={`cell-${index}`} fill={cores[index % cores.length]} />
-            ))}
-            <LabelList position="right" fill="#374151" stroke="none" dataKey="name" fontSize={12} fontWeight="800" />
-            <LabelList position="center" fill="#ffffff" stroke="none" dataKey="value" fontSize={15} fontWeight="900" />
-          </Funnel>
-        </FunnelChart>
-      </ResponsiveContainer>
-    </div>
-  );
-}
 
 // ==========================================
 // EXPORT

@@ -2031,3 +2031,92 @@ body {
   }
 
 }
+/* ==========================================================================
+   AJUSTES DE RESPONSIVIDADE E LARGURA TOTAL - LPC
+   ========================================================================== */
+
+/* 1. Faz com que a listagem de Clientes em POC ocupe toda a largura de forma fluida */
+.lpc-client-grid {
+  display: grid !important;
+  /* Cria colunas automáticas de no mínimo 320px que esticam para ocupar 100% da tela */
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)) !important;
+  gap: 20px !important;
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
+/* Garantia de que cada Card individual de Cliente ocupe 100% do espaço da sua coluna */
+.lpc-poc-card {
+  width: 100% !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+/* 2. Faz com que o painel de 5 cards do C-Level se ajuste inteligentemente */
+.lpc-summary-grid {
+  display: grid !important;
+  /* Em telas menores ele quebra linha, em telas grandes ele estica */
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)) !important;
+  gap: 16px !important;
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
+.lpc-summary-card {
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
+/* 3. Ajuste para os KPIs Estratégicos da POC */
+.lpc-strategic-kpi-grid {
+  display: grid !important;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)) !important;
+  gap: 16px !important;
+  width: 100% !important;
+}
+/* =========================================
+   FORÇA A ÁREA PRINCIPAL A USAR 100% DA TELA
+   ========================================= */
+
+/* Garante que o container principal de conteúdo ocupe todo o espaço */
+.lpc-main {
+  width: 100%;
+}
+
+/* 
+  Este é o ajuste mais importante! 
+  Garante que cada "seção" (como a de "KPIs Estratégicos") 
+  não tenha um limite de largura e possa se expandir.
+*/
+.lpc-section {
+  width: 100%;
+  max-width: 100% !important; /* Remove qualquer limite máximo de largura */
+  box-sizing: border-box; /* Evita que padding ou borda quebrem o layout */
+}
+/* ==========================================================================
+   DESTRAVA DE LARGURA PADRÃO DO VITE / REACT
+   ========================================================================== */
+
+/* 1. Remove qualquer limite de tamanho do container principal do React */
+#root {
+  max-width: none !important;
+  width: 100% !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+/* 2. Garante que a página toda use 100% da tela desde as bordas */
+html, body {
+  max-width: 100% !important;
+  width: 100% !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow-x: hidden !important; /* Evita barra de rolagem horizontal indesejada */
+}
+
+/* 3. Força a casca do seu app a expandir totalmente */
+.lpc-app-shell {
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
