@@ -1,366 +1,103 @@
 export function processarDados(dados) {
-  if (!dados || dados.length === 0) {
-    return [];
-  }
+  if (!dados || dados.length === 0) return [];
 
   return dados.map((item) => {
-    const mes = converterData(
-      item["Mês"]
-    );
-
+    const mes = converterData(item["Mês"]);
     return {
       cliente: item["Cliente"] || "",
       cs: item["CS"] || "",
-
       mes: mes,
-
-      // Formato utilizado pelo filtro
-      mesReferencia: mes
-        ? obterMesReferencia(mes)
-        : "",
-
-      // ================================
-      // CRONOGRAMA
-      // ================================
-
-      diasAtraso: numero(
-        item["Dias de Atraso"]
-      ),
-
-      // ================================
-      // MALHA
-      // ================================
-
-      rotasTotais: numero(
-        item["Rotas Totais"]
-      ),
-
-      rotasDisponibilizadas: numero(
-        item["Rotas Disponibilizadas"]
-      ),
-
-      rotasSinergia: numero(
-        item["Rotas com Sinergia"]
-      ),
-
-      oportunidades: numero(
-        item["Oportunidades Identificadas"]
-      ),
-
-      // ================================
-      // OPERAÇÃO
-      // ================================
-
-      rotasExecutadas: numero(
-        item["Rotas Executadas"]
-      ),
-
-      embarquesPlanejados: numero(
-        item["Embarques Planejados"]
-      ),
-
-      embarquesRealizados: numero(
-        item["Embarques Realizados"]
-      ),
-
-      usuariosAtivos: numero(
-        item["Usuários Ativos"]
-      ),
-
-      // ================================
-      // FINANCEIRO
-      // ================================
-
-      saas: numero(
-        item["SAAS (R$)"]
-      ),
-
-      baseline: numero(
-        item["Custo Baseline Atual (R$)"]
-      ),
-
-      realizado: numero(
-        item[
-          "Custo Realizado LogShare(R$)"
-        ]
-      ),
-
-      // ================================
-      // SLA
-      // ================================
-
-      embarquesOnTime: numero(
-        item["Embarques On Time"]
-      ),
-
-      embarquesTotal: numero(
-        item["Embarques Total"]
-      ),
-
-      // ================================
-      // SUSTENTABILIDADE
-      // ================================
-
-      co2: numero(
-        item["CO₂ Evitado (kg)"]
-      ),
-
-      arvores: numero(
-        item["Equivalênciaem Arvores"]
-      ),
-
-      camposFutebol: numero(
-        item[
-          "Equivalência Campos Futebol"
-        ]
-      ),
-
-      // ================================
-      // OBSERVAÇÕES
-      // ================================
-
-      observacoes:
-        item["Observações"] || "",
+      // Agora o sistema vai encontrar a função abaixo e gerar "2026-08" corretamente!
+      mesReferencia: mes ? obterMesReferencia(mes) : "",
+      diasAtraso: numero(item["Dias de Atraso"]),
+      rotasTotais: numero(item["Rotas Totais"]),
+      rotasDisponibilizadas: numero(item["Rotas Disponibilizadas"]),
+      rotasSinergia: numero(item["Rotas com Sinergia"]),
+      oportunidades: numero(item["Oportunidades Identificadas"]),
+      rotasExecutadas: numero(item["Rotas Executadas"]),
+      embarquesPlanejados: numero(item["Embarques Planejados"]),
+      embarquesRealizados: numero(item["Embarques Realizados"]),
+      usuariosAtivos: numero(item["Usuários Ativos"]),
+      saas: numero(item["SAAS (R$)"]),
+      baseline: numero(item["Custo Baseline Atual (R$)"]),
+      realizado: numero(item["Custo Realizado LogShare(R$)"]),
+      embarquesOnTime: numero(item["Embarques On Time"]),
+      embarquesTotal: numero(item["Embarques Total"]),
+      co2: numero(item["CO₂ Evitado (kg)"]),
+      arvores: numero(item["Equivalênciaem Arvores"]),
+      camposFutebol: numero(item["Equivalência Campos Futebol"]),
+      observacoes: item["Observações"] || "",
     };
   });
 }
 
-
-// ========================================
-// CONVERTER NÚMERO
-// ========================================
-
 function numero(valor) {
-  if (
-    valor === null ||
-    valor === undefined ||
-    valor === ""
-  ) {
-    return 0;
-  }
-
-  // Se o Excel já entregou como número
-  if (typeof valor === "number") {
-    return valor;
-  }
-
-  let texto = String(valor)
-    .trim();
-
-  if (texto === "") {
-    return 0;
-  }
-
-  // Remove R$
-  texto = texto.replace(
-    /R\$/gi,
-    ""
-  );
-
-  // Remove espaços
-  texto = texto.replace(
-    /\s/g,
-    ""
-  );
-
-  // ----------------------------------------
-  // Número brasileiro
-  //
-  // 1.234,56
-  // 18.000,00
-  // 7
-  // 92,5
-  // ----------------------------------------
-
-  if (
-    texto.includes(",")
-  ) {
-
-    texto = texto.replace(
-      /\./g,
-      ""
-    );
-
-    texto = texto.replace(
-      ",",
-      "."
-    );
-
+  if (valor === null || valor === undefined || valor === "") return 0;
+  if (typeof valor === "number") return valor;
+  let texto = String(valor).trim();
+  if (texto === "") return 0;
+  texto = texto.replace(/R\$/gi, "").replace(/\s/g, "");
+  if (texto.includes(",")) {
+    texto = texto.replace(/\./g, "").replace(",", ".");
   } else {
-
-    // Se não possui vírgula,
-    // apenas remove separadores
-    // de milhar quando necessário.
-
-    const partes =
-      texto.split(".");
-
-    if (
-      partes.length > 2
-    ) {
-
-      texto =
-        partes.join("");
-
-    }
+    const partes = texto.split(".");
+    if (partes.length > 2) texto = partes.join("");
   }
-
-  const resultado =
-    Number(texto);
-
-  return isNaN(resultado)
-    ? 0
-    : resultado;
+  const resultado = Number(texto);
+  return isNaN(resultado) ? 0 : resultado;
 }
 
-
 // ========================================
-// CONVERTER DATA
+// CONVERTER DATA (BLINDADA)
 // ========================================
-
 function converterData(valor) {
-  if (!valor) {
-    return null;
+  if (!valor) return null;
+
+  // 1. Agora que o excelService usa cellDates, a data chega pura aqui!
+  if (valor instanceof Date) {
+    // Usamos getUTC para ignorar o fuso horário brasileiro (-3h) e impedir que o mês caia para o anterior
+    return new Date(valor.getUTCFullYear(), valor.getUTCMonth(), valor.getUTCDate());
   }
 
-  // ----------------------------------------
-  // Excel entrega como Date
-  // ----------------------------------------
-
-  if (
-    valor instanceof Date
-  ) {
-
-    return new Date(
-      valor.getFullYear(),
-      valor.getMonth(),
-      valor.getDate()
-    );
+  // 2. Proteção caso a célula do Excel esteja em formato de "Texto" como "01/08/26"
+  const texto = String(valor).trim();
+  
+  if (texto.includes("/")) {
+    const partes = texto.split("/");
+    let dia = Number(partes.shift());
+    let mes = Number(partes.shift()) - 1;
+    let ano = Number(partes.shift());
+    
+    if (isNaN(ano)) { ano = mes + 1; mes = dia - 1; dia = 1; } // Trata Mês/Ano (08/2026)
+    if (ano < 100) ano += 2000; // Transforma "26" em 2026 (Adeus Ano 01!)
+    
+    if (ano) return new Date(ano, mes, dia);
+  }
+  
+  if (texto.includes("-")) {
+    const partes = texto.split("-");
+    let p1 = Number(partes.shift());
+    let p2 = Number(partes.shift()) - 1;
+    let p3 = partes.length > 0 ? Number(partes.shift().substring(0,2)) : null;
+    
+    if (p1 > 1000) return new Date(p1, p2, p3 || 1); // YYYY-MM-DD
+    if (p3 !== null) return new Date(p3 < 100 ? p3 + 2000 : p3, p2, p1); // DD-MM-YY
+    return new Date(p2 < 100 ? p2 + 2000 : p2, p1, 1); // MM-YYYY
   }
 
-
-  // ----------------------------------------
-  // Excel entrega como número serial
-  // ----------------------------------------
-
-  if (
-    typeof valor === "number"
-  ) {
-
-    const dataBase =
-      new Date(
-        1899,
-        11,
-        30
-      );
-
-    dataBase.setDate(
-      dataBase.getDate() +
-        valor
-    );
-
-    return new Date(
-      dataBase.getFullYear(),
-      dataBase.getMonth(),
-      dataBase.getDate()
-    );
-  }
-
-
-  // ----------------------------------------
-  // Texto
-  // ----------------------------------------
-
-  const texto =
-    String(valor).trim();
-
-
-  // ----------------------------------------
-  // Formato brasileiro:
-  //
-  // 01/08/2026
-  // ----------------------------------------
-
-  const partes =
-    texto.split("/");
-
-
-  if (
-    partes.length === 3
-  ) {
-
-    const dia =
-      Number(partes[0]);
-
-    const mes =
-      Number(partes[1]) - 1;
-
-    const ano =
-      Number(partes[2]);
-
-    const data =
-      new Date(
-        ano,
-        mes,
-        dia
-      );
-
-    if (
-      !isNaN(
-        data.getTime()
-      )
-    ) {
-
-      return data;
-    }
-  }
-
-
-  // ----------------------------------------
-  // Outros formatos reconhecidos pelo JS
-  // ----------------------------------------
-
-  const data =
-    new Date(texto);
-
-  if (
-    !isNaN(
-      data.getTime()
-    )
-  ) {
-
-    return new Date(
-      data.getFullYear(),
-      data.getMonth(),
-      data.getDate()
-    );
-  }
+  // 3. Fallback
+  const d = new Date(texto);
+  if (!isNaN(d.getTime())) return new Date(d.getFullYear(), d.getMonth(), d.getDate());
 
   return null;
 }
 
-
 // ========================================
-// REFERÊNCIA MENSAL
-//
-// Exemplo:
-// 2026-07
+// REFERÊNCIA MENSAL (A FUNÇÃO QUE FALTAVA!)
 // ========================================
-
-function obterMesReferencia(
-  data
-) {
-
-  const ano =
-    data.getFullYear();
-
-  const mes =
-    String(
-      data.getMonth() + 1
-    ).padStart(
-      2,
-      "0"
-    );
-
+function obterMesReferencia(data) {
+  if (!data) return "";
+  const ano = data.getFullYear();
+  const mes = String(data.getMonth() + 1).padStart(2, "0");
   return `${ano}-${mes}`;
 }
