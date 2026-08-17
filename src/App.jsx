@@ -1197,33 +1197,46 @@ function VisaoPoc({ dashboard, formatarMoeda, formatarNumero, formatarPercentual
 }
 
 // ==========================================
-// GRÁFICO 1: EVOLUÇÃO DE EMBARQUES E ADERÊNCIA (DINÂMICO)
+// GRÁFICO 1: EVOLUÇÃO DE EMBARQUES E ADERÊNCIA (DINÂMICO E CORRIGIDO)
 // ==========================================
 function GraficoEvolucaoEmbarques({ dashboard }) {
-  // Puxa o histórico real calculado a partir do Excel
-  const historico = dashboard?.historicoScore || [];
+  // Puxa o histórico do dashboard
+  const historico = dashboard?.historicoScore || dashboard?.historico || [];
 
-  // Mapeia os dados do histórico para o formato que a Recharts entende
+  // Mapeia os dados lendo do objeto `.valores` correto de cada mês
   const dados = historico.map(item => {
-    const planejados = Number(item.embarquesPlanejados || 0);
-    const realizados = Number(item.embarquesRealizados || 0);
-    // Se houver embarques, calcula a aderência real, senão usa o Score geral
-    const aderencia = planejados > 0 ? Math.round((realizados / planejados) * 100) : Number(item.score || 0);
-    
+    // Busca a taxa de aderência calculada que fica dentro de "valores"
+    // No seu scoreHistory, ela é salva como item.valores.aderencia
+    const taxaAderencia = item?.valores?.aderencia !== undefined 
+      ? Number(item.valores.aderencia) 
+      : Number(item.score || 0);
+
+    // Na sua estrutura de histórico, o scoreHistory lê os registros brutos do último item
+    // para buscar os números de embarques reais do mês
+    const planejados = Number(item?.embarquesPlanejados || item?.valores?.volume || 0);
+    const realizados = Number(item?.embarquesRealizados || 0);
+
     return {
-      mes: formatarMes(item.mesReferencia),
-      planejados,
-      realizados,
-      aderencia
+      mes: formatarMes(item.mesReferencia || item.mes),
+      planejados: planejados || Math.round(realizados / (taxaAderencia / 100 || 1)), // cálculo de contingência
+      realizados: realizados || Math.round(planejados * (taxaAderencia / 100)),     // cálculo de contingência
+      aderencia: Math.round(taxaAderencia)
     };
   });
+
+  // Se o histórico estiver sem dados de embarques, usamos um fallback visual inteligente
+  const semDados = dados.length === 0;
 
   return (
     <div style={{ width: "100%", height: "420px", backgroundColor: "#ffffff", padding: "24px", borderRadius: "16px", border: "1px solid #f3f4f6", boxShadow: "0 4px 12px rgba(0,0,0,0.03)", display: "flex", flexDirection: "column" }}>
       <h3 style={{ margin: '0 0 16px 0', fontSize: '16px', fontWeight: '800', color: '#111827' }}>Evolução de Embarques e Aderência</h3>
       
-      {dados.length === 0 ? (
-        <div style={{ display: "flex", flex: 1, alignItems: "center", justifyContent: "center", color: "#9ca3af" }}>Sem dados históricos suficientes.</div>
+      {semDados ? (
+        <div style={{ display: "flex", flex: 1, flexDirection: "column", alignItems: "center", justifyContent: "center", color: "#9ca3af", gap: "8px" }}>
+          <span style={{ fontSize: "24px" }}>📊</span>
+          <span style={{ fontSize: "14px", fontWeight: "600" }}>Aguardando importação dos dados...</span>
+          <span style={{ fontSize: "12px", color: "#d1d5db" }}>Insira a planilha para calcular o histórico.</span>
+        </div>
       ) : (
         <ResponsiveContainer width="99%" height="100%">
           <ComposedChart data={dados} margin={{ top: 10, right: 10, left: 0, bottom: 20 }}>
@@ -1245,48 +1258,63 @@ function GraficoEvolucaoEmbarques({ dashboard }) {
 }
 
 // ==========================================
-// GRÁFICO 2: FUNIL DE OPORTUNIDADES (DINÂMICO)
+// GRÁFICO 1: EVOLUÇÃO DE EMBARQUES E ADERÊNCIA (DINÂMICO E CORRIGIDO)
 // ==========================================
-function GraficoFunilOportunidades({ dashboard }) {
-  if (!dashboard) return null;
+function GraficoEvolucaoEmbarques({ dashboard }) {
+  // Puxa o histórico do dashboard
+  const historico = dashboard?.historicoScore || dashboard?.historico || [];
 
-  // Extraindo os totais do período selecionado do objeto dashboard real
-  const totais = Number(dashboard.rotasTotais || 0);
-  const disponiveis = Number(dashboard.rotasDisponibilizadas || 0);
-  const match = Number(dashboard.rotasSinergia || 0);
-  const oportunidades = Number(dashboard.oportunidades || 0);
-  const executadas = Number(dashboard.rotasExecutadas || 0);
+  // Mapeia os dados lendo do objeto `.valores` correto de cada mês
+  const dados = historico.map(item => {
+    const taxaAderencia = item?.valores?.aderencia !== undefined 
+      ? Number(item.valores.aderencia) 
+      : Number(item.score || 0);
 
-  // Criando as 5 etapas que você solicitou com as conversões calculadas em cascata
-  const dados = [
-    { name: 'Rotas Totais', value: totais, conversao: '100%' },
-    { name: 'Disponibilizadas', value: disponiveis, conversao: totais ? Math.round((disponiveis/totais)*100)+'%' : '0%' },
-    { name: 'Rotas com Match', value: match, conversao: disponiveis ? Math.round((match/disponiveis)*100)+'%' : '0%' },
-    { name: 'Oportunidades Identif.', value: oportunidades, conversao: match ? Math.round((oportunidades/match)*100)+'%' : '0%' },
-    { name: 'Rotas Executadas', value: executadas, conversao: oportunidades ? Math.round((executadas/oportunidades)*100)+'%' : '0%' },
-  ];
-  
-  const cores = ['#0891b2', '#0e7490', '#155e75', '#164e63', '#083344'];
+    const planejados = Number(item?.embarquesPlanejados || item?.valores?.volume || 0);
+    const realizados = Number(item?.embarquesRealizados || 0);
+
+    return {
+      mes: formatarMes(item.mesReferencia || item.mes),
+      planejados: planejados || Math.round(realizados / (taxaAderencia / 100 || 1)), // cálculo de contingência
+      realizados: realizados || Math.round(planejados * (taxaAderencia / 100)),     // cálculo de contingência
+      aderencia: Math.round(taxaAderencia)
+    };
+  });
+
+  // Se o histórico estiver sem dados de embarques, usamos um fallback visual inteligente
+  const semDados = dados.length === 0;
 
   return (
     <div style={{ width: "100%", height: "420px", backgroundColor: "#ffffff", padding: "24px", borderRadius: "16px", border: "1px solid #f3f4f6", boxShadow: "0 4px 12px rgba(0,0,0,0.03)", display: "flex", flexDirection: "column" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
-        <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '800', color: '#111827' }}>Funil de Oportunidades</h3>
-        <span style={{ fontSize: "11px", color: "#6b7280", fontWeight: "bold", backgroundColor: "#f3f4f6", padding: "4px 8px", borderRadius: "6px" }}>PERÍODO SELECIONADO</span>
-      </div>
+      <h3 style={{ margin: '0 0 16px 0', fontSize: '16px', fontWeight: '800', color: '#111827' }}>Evolução de Embarques e Aderência</h3>
       
-      <ResponsiveContainer width="99%" height="100%">
-        <FunnelChart margin={{ top: 20, right: 160, left: 20, bottom: 20 }}>
-          <Tooltip contentStyle={{ backgroundColor: '#fff', border: '1px solid #e5e7eb', borderRadius: '12px', fontWeight: "bold" }} />
-          <Funnel dataKey="value" data={dados} isAnimationActive>
-            {dados.map((entry, index) => (
-              <Cell key={`cell-${index}`} fill={cores[index % cores.length]} />
-            ))}
-            <LabelList position="right" fill="#374151" stroke="none" dataKey="name" fontSize={12} fontWeight="800" />
-            <LabelList position="center" fill="#ffffff" stroke="none" dataKey="value" fontSize={15} fontWeight="900" />
-          </Funnel>
-        </FunnelChart>
-      </ResponsiveContainer>
+      {semDados ? (
+        <div style={{ display: "flex", flex: 1, flexDirection: "column", alignItems: "center", justifyContent: "center", color: "#9ca3af", gap: "8px" }}>
+          <span style={{ fontSize: "24px" }}>📊</span>
+          <span style={{ fontSize: "14px", fontWeight: "600" }}>Aguardando importação dos dados...</span>
+          <span style={{ fontSize: "12px", color: "#d1d5db" }}>Insira a planilha para calcular o histórico.</span>
+        </div>
+      ) : (
+        <ResponsiveContainer width="99%" height="100%">
+          <ComposedChart data={dados} margin={{ top: 10, right: 10, left: -20, bottom: 20 }}>
+            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" />
+            
+            <XAxis dataKey="mes" axisLine={false} tickLine={false} tick={{ fill: '#4b5563', fontSize: 12, fontWeight: 600 }} dy={10} />
+            
+            {/* Eixos com IDs padronizados (left e right) */}
+            <YAxis yAxisId="left" axisLine={false} tickLine={false} tick={{ fill: '#4b5563', fontSize: 12, fontWeight: 600 }} />
+            <YAxis yAxisId="right" orientation="right" domain={[0, 100]} axisLine={false} tickLine={false} tick={{ fill: '#4b5563', fontSize: 12, fontWeight: 600 }} tickFormatter={(val) => `${val}%`} />
+            
+            <Tooltip contentStyle={{ backgroundColor: '#fff', border: '1px solid #e5e7eb', borderRadius: '12px', fontWeight: "bold", color: "#1f2937" }} />
+            <Legend verticalAlign="bottom" height={36} iconType="circle" wrapperStyle={{ fontSize: "13px", fontWeight: "700", color: "#374151", paddingTop: "24px" }} />
+            
+            {/* Vinculando as barras aos eixos corretos usando "left" e "right" */}
+            <Bar yAxisId="left" dataKey="planejados" name="Planejados" fill="#38bdf8" radius={[4, 4, 0, 0]} maxBarSize={35} />
+            <Bar yAxisId="left" dataKey="realizados" name="Realizados" fill="#0369a1" radius={[4, 4, 0, 0]} maxBarSize={35} />
+            <Line yAxisId="right" type="monotone" dataKey="aderencia" name="Aderência" stroke="#f59e0b" strokeWidth={3} dot={{ r: 4 }} activeDot={{ r: 6 }} />
+          </ComposedChart>
+        </ResponsiveContainer>
+      )}
     </div>
   );
 }
