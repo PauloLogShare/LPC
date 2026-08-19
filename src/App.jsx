@@ -1213,47 +1213,44 @@ function VisaoPoc({ dashboard, dadosBrutos, clienteSelecionado, dataInicio, data
 }
 
 // ==========================================
-// GRÁFICO 1: EVOLUÇÃO DE EMBARQUES (COM SOMA E CORREÇÃO DE VALORES)
+// GRÁFICO 1: EVOLUÇÃO DE EMBARQUES E ADERÊNCIA (VERSÃO DEFINITIVA)
 // ==========================================
-function GraficoEvolucaoEmbarques({ dashboard, dadosBrutos, cliente, dataInicio, dataFim }) {
-  const historico = dashboard?.historicoScore || dashboard?.historico || [];
-
-  // 1. Filtra os dados brutos do Excel com base no período selecionado
+function GraficoEvolucaoEmbarques({ dadosBrutos, cliente, dataInicio, dataFim }) {
+  // 1. Copia e filtra os dados brutos EXATAMENTE como estão no Excel
+  let dadosFiltrados = [...(dadosBrutos || [])];
+  
+  if (cliente && cliente !== "Todos") {
+    dadosFiltrados = dadosFiltrados.filter(item => item.cliente === cliente);
+  }
+  
   const mesInicio = dataInicio ? dataInicio.substring(0, 7) : null;
   const mesFim = dataFim ? dataFim.substring(0, 7) : null;
-
-  let dadosFiltrados = [...(dadosBrutos || [])];
+  
   if (mesInicio) dadosFiltrados = dadosFiltrados.filter(item => item.mesReferencia >= mesInicio);
   if (mesFim) dadosFiltrados = dadosFiltrados.filter(item => item.mesReferencia <= mesFim);
 
-  // 2. Filtra os meses de histórico para mostrar apenas o período selecionado
-  let historicoFiltrado = [...historico];
-  if (mesInicio) historicoFiltrado = historicoFiltrado.filter(item => (item.mesReferencia || item.mes) >= mesInicio);
-  if (mesFim) historicoFiltrado = historicoFiltrado.filter(item => (item.mesReferencia || item.mes) <= mesFim);
-
-  // 3. Mapeia cada mês calculando os embarques reais de forma inteligente
-  const dados = historicoFiltrado.map(item => {
-    const mesRef = item.mesReferencia || item.mes;
+  // 2. Agrupa e soma os valores mês a mês na hora (Direto da fonte)
+  const agrupamentoMeses = {};
+  
+  dadosFiltrados.forEach(item => {
+    const mesRef = item.mesReferencia;
+    if (!mesRef) return;
     
-    // Pega todos os registros brutos do Excel para este mês específico
-    let registrosDoMes = dadosFiltrados.filter(d => d.mesReferencia === mesRef);
-
-    // Se houver um cliente específico selecionado, filtra apenas ele
-    if (cliente && cliente !== "Todos") {
-      registrosDoMes = registrosDoMes.filter(d => d.cliente === cliente);
+    if (!agrupamentoMeses[mesRef]) {
+      agrupamentoMeses[mesRef] = { planejados: 0, realizados: 0 };
     }
+    
+    agrupamentoMeses[mesRef].planejados += Number(item.embarquesPlanejados || 0);
+    agrupamentoMeses[mesRef].realizados += Number(item.embarquesRealizados || 0);
+  });
 
-    // Soma os embarques planejados e realizados de todas as linhas deste mês
-    // Isso garante que se o filtro for "Todos", ele vai somar o volume de todas as POCs!
-    let planejados = 0;
-    let realizados = 0;
-
-    registrosDoMes.forEach(reg => {
-      planejados += Number(reg.embarquesPlanejados || 0);
-      realizados += Number(reg.embarquesRealizados || 0);
-    });
-
-    const aderencia = Math.max(0, Math.round(Number(item?.valores?.aderencia ?? item.score ?? 0)));
+  // 3. Monta o array ordenado para o gráfico
+  const dados = Object.keys(agrupamentoMeses).sort().map(mesRef => {
+    const planejados = agrupamentoMeses[mesRef].planejados;
+    const realizados = agrupamentoMeses[mesRef].realizados;
+    
+    // CÁLCULO LIVRE: Sem a trava de 100%!
+    const aderencia = planejados > 0 ? Math.round((realizados / planejados) * 100) : 0;
 
     return {
       mes: formatarMes(mesRef),
@@ -1269,7 +1266,7 @@ function GraficoEvolucaoEmbarques({ dashboard, dadosBrutos, cliente, dataInicio,
       
       {dados.length === 0 ? (
         <div style={{ display: "flex", flex: 1, flexDirection: "column", alignItems: "center", justifyContent: "center", color: "#9ca3af" }}>
-          <span style={{ fontSize: "14px", fontWeight: "600" }}>Sem dados no período selecionado.</span>
+          <span style={{ fontSize: "14px", fontWeight: "600" }}>Sem dados de embarques no período.</span>
         </div>
       ) : (
         <ResponsiveContainer width="99%" height="100%">
@@ -1277,10 +1274,18 @@ function GraficoEvolucaoEmbarques({ dashboard, dadosBrutos, cliente, dataInicio,
             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" />
             <XAxis dataKey="mes" axisLine={false} tickLine={false} tick={{ fill: '#4b5563', fontSize: 12, fontWeight: 600 }} dy={10} />
             
+            {/* TRAVADO NO ZERO: Impede que barras comecem abaixo da linha */}
             <YAxis yAxisId="left" domain={[0, 'auto']} allowDataOverflow={false} axisLine={false} tickLine={false} tick={{ fill: '#4b5563', fontSize: 12, fontWeight: 600 }} />
-            <YAxis yAxisId="right" orientation="right" domain={[0, 100]} axisLine={false} tickLine={false} tick={{ fill: '#4b5563', fontSize: 12, fontWeight: 600 }} tickFormatter={(val) => `${val}%`} />
             
-            <Tooltip contentStyle={{ backgroundColor: '#fff', border: '1px solid #e5e7eb', borderRadius: '12px', fontWeight: "bold", color: "#1f2937" }} />
+            {/* ESCALA INTELIGENTE: Eixo Y da Aderência estica além de 100% se necessário */}
+            <YAxis yAxisId="right" orientation="right" domain={[0, dataMax => Math.max(100, dataMax)]} axisLine={false} tickLine={false} tick={{ fill: '#4b5563', fontSize: 12, fontWeight: 600 }} tickFormatter={(val) => `${val}%`} />
+            
+            {/* TOOLTIP: Coloca o "%" apenas na linha de Aderência */}
+            <Tooltip 
+              contentStyle={{ backgroundColor: '#fff', border: '1px solid #e5e7eb', borderRadius: '12px', fontWeight: "bold", color: "#1f2937" }} 
+              formatter={(value, name) => name === 'Aderência' ? `${value}%` : value}
+            />
+            
             <Legend verticalAlign="bottom" height={36} iconType="circle" wrapperStyle={{ fontSize: "13px", fontWeight: "700", color: "#374151", paddingTop: "24px" }} />
             
             <Bar yAxisId="left" dataKey="planejados" name="Planejados" fill="#38bdf8" maxBarSize={35} />
@@ -1292,6 +1297,7 @@ function GraficoEvolucaoEmbarques({ dashboard, dadosBrutos, cliente, dataInicio,
     </div>
   );
 }
+
 
 // ==========================================
 // GRÁFICO 2: FUNIL DE OPORTUNIDADES (LIGADO DIRETO NO MOTOR CORRETO)
