@@ -8,537 +8,116 @@ import {
   calcularReducaoCusto,
 } from "./kpiEngine";
 
-import {
-  calcularScore,
-  obterStatusScore,
-} from "./scoreEngine";
-
-import {
-  calcularHistoricoScore,
-} from "./scoreHistory";
+import { calcularScore, obterStatusScore } from "./scoreEngine";
+import { calcularHistoricoScore } from "./scoreHistory";
 
 // ==========================================
-// DASHBOARD
+// DASHBOARD (MOTOR DE CÁLCULO ANTI-FALHAS)
 // ==========================================
-
-export function calcularDashboard(
-  dados,
-  dataInicio = null,
-  dataFim = null
-) {
-
-  if (
-    !dados ||
-    dados.length === 0
-  ) {
-    return null;
-  }
+export function calcularDashboard(dados, dataInicio = null, dataFim = null) {
+  if (!dados || dados.length === 0) return null;
 
   // ========================================
   // FILTRO DE PERÍODO
   // ========================================
-
   let dadosPeriodo = [...dados];
+  const mesInicio = dataInicio ? obterMesReferencia(dataInicio) : null;
+  const mesFim = dataFim ? obterMesReferencia(dataFim) : null;
 
-  const mesInicio =
-    dataInicio
-      ? obterMesReferencia(dataInicio)
-      : null;
-
-  const mesFim =
-    dataFim
-      ? obterMesReferencia(dataFim)
-      : null;
-
-  if (mesInicio) {
-
-    dadosPeriodo =
-      dadosPeriodo.filter(
-        (item) =>
-          item.mesReferencia >=
-          mesInicio
-      );
-
-  }
-
-  if (mesFim) {
-
-    dadosPeriodo =
-      dadosPeriodo.filter(
-        (item) =>
-          item.mesReferencia <=
-          mesFim
-      );
-
-  }
-
-  if (
-    dadosPeriodo.length === 0
-  ) {
-    return null;
-  }
+  if (mesInicio) dadosPeriodo = dadosPeriodo.filter((item) => item.mesReferencia >= mesInicio);
+  if (mesFim) dadosPeriodo = dadosPeriodo.filter((item) => item.mesReferencia <= mesFim);
+  if (dadosPeriodo.length === 0) return null;
 
   // ========================================
-  // ORDENAR
+  // SNAPSHOT CORRETO: ÚLTIMO MÊS DE CADA CLIENTE
   // ========================================
+  // Agrupa e encontra o último registro Válido INDIVIDUAL de cada cliente!
+  const ultimosRegistrosPorCliente = {};
+  
+  dadosPeriodo.forEach(reg => {
+    const cliente = reg.cliente || "Desconhecido";
+    if (!ultimosRegistrosPorCliente[cliente]) {
+       ultimosRegistrosPorCliente[cliente] = reg;
+    } else {
+       if (reg.mesReferencia > ultimosRegistrosPorCliente[cliente].mesReferencia) {
+           ultimosRegistrosPorCliente[cliente] = reg;
+       }
+    }
+  });
 
-  const dadosOrdenados =
-    [...dadosPeriodo].sort(
-      (a, b) =>
-        a.mes - b.mes
-    );
+  // SOMA OS VALORES DOS ÚLTIMOS REGISTROS
+  let rotasTotais = 0, rotasDisponibilizadas = 0, rotasSinergia = 0, oportunidades = 0;
+  let rotasExecutadas = 0, usuariosAtivos = 0, diasAtraso = 0, investimento = 0;
 
-  // ========================================
-  // ÚLTIMO REGISTRO
-  // ========================================
-
-  const ultimoRegistro =
-    dadosOrdenados[
-      dadosOrdenados.length - 1
-    ];
-
-  // ========================================
-  // CRONOGRAMA
-  // ========================================
-
-  const diasAtraso =
-    Number(
-      ultimoRegistro.diasAtraso ?? 0
-    );
-
-  // ========================================
-  // MALHA
-  // SNAPSHOT DO ÚLTIMO MÊS
-  // ========================================
-
-  const rotasTotais =
-    ultimoRegistro.rotasTotais;
-
-  const rotasDisponibilizadas =
-    ultimoRegistro.rotasDisponibilizadas;
-
-  const rotasSinergia =
-    ultimoRegistro.rotasSinergia;
-
-  const oportunidades =
-    ultimoRegistro.oportunidades;
+  Object.values(ultimosRegistrosPorCliente).forEach(reg => {
+    rotasTotais += Number(reg.rotasTotais || 0);
+    rotasDisponibilizadas += Number(reg.rotasDisponibilizadas || 0);
+    rotasSinergia += Number(reg.rotasSinergia || reg.rotasMatch || 0); // Lê as duas formas de coluna
+    oportunidades += Number(reg.oportunidades || 0);
+    rotasExecutadas += Number(reg.rotasExecutadas || 0);
+    usuariosAtivos += Number(reg.usuariosAtivos || 0);
+    diasAtraso = Math.max(diasAtraso, Number(reg.diasAtraso || 0));
+    investimento += Number(reg.saas || 0);
+  });
 
   // ========================================
-  // OPERAÇÃO
+  // CONSOLIDADOS DO PERÍODO COMPLETO (Sua lógica original)
   // ========================================
-
-  const rotasExecutadas =
-    ultimoRegistro.rotasExecutadas;
-
-  const usuariosAtivos =
-    ultimoRegistro.usuariosAtivos;
-
-  // ========================================
-  // EMBARQUES
-  // CONSOLIDADO DO PERÍODO
-  // ========================================
-
-  const embarquesPlanejados =
-    dadosOrdenados.reduce(
-      (total, item) =>
-        total +
-        Number(
-          item.embarquesPlanejados || 0
-        ),
-      0
-    );
-
-  const embarquesRealizados =
-    dadosOrdenados.reduce(
-      (total, item) =>
-        total +
-        Number(
-          item.embarquesRealizados || 0
-        ),
-      0
-    );
+  const embarquesPlanejados = dadosPeriodo.reduce((total, item) => total + Number(item.embarquesPlanejados || 0), 0);
+  const embarquesRealizados = dadosPeriodo.reduce((total, item) => total + Number(item.embarquesRealizados || 0), 0);
+  const baseline = dadosPeriodo.reduce((total, item) => total + Number(item.baseline || 0), 0);
+  const realizado = dadosPeriodo.reduce((total, item) => total + Number(item.realizado || 0), 0);
+  const embarquesOnTime = dadosPeriodo.reduce((total, item) => total + Number(item.embarquesOnTime || 0), 0);
+  const embarquesTotal = dadosPeriodo.reduce((total, item) => total + Number(item.embarquesTotal || 0), 0);
+  const co2 = dadosPeriodo.reduce((total, item) => total + Number(item.co2 || 0), 0);
+  const arvores = dadosPeriodo.reduce((total, item) => total + Number(item.arvores || 0), 0);
+  const camposFutebol = dadosPeriodo.reduce((total, item) => total + Number(item.camposFutebol || 0), 0);
 
   // ========================================
-  // FINANCEIRO
+  // CÁLCULO DOS KPIs
   // ========================================
-
-  const baseline =
-    dadosOrdenados.reduce(
-      (total, item) =>
-        total +
-        Number(
-          item.baseline || 0
-        ),
-      0
-    );
-
-  const realizado =
-    dadosOrdenados.reduce(
-      (total, item) =>
-        total +
-        Number(
-          item.realizado || 0
-        ),
-      0
-    );
-
-  // ========================================
-  // ON TIME
-  // ========================================
-
-  const embarquesOnTime =
-    dadosOrdenados.reduce(
-      (total, item) =>
-        total +
-        Number(
-          item.embarquesOnTime || 0
-        ),
-      0
-    );
-
-  const embarquesTotal =
-    dadosOrdenados.reduce(
-      (total, item) =>
-        total +
-        Number(
-          item.embarquesTotal || 0
-        ),
-      0
-    );
-
-  // ========================================
-  // SUSTENTABILIDADE
-  // ========================================
-
-  const co2 =
-    dadosOrdenados.reduce(
-      (total, item) =>
-        total +
-        Number(
-          item.co2 || 0
-        ),
-      0
-    );
-
-  const arvores =
-    dadosOrdenados.reduce(
-      (total, item) =>
-        total +
-        Number(
-          item.arvores || 0
-        ),
-      0
-    );
-
-  const camposFutebol =
-    dadosOrdenados.reduce(
-      (total, item) =>
-        total +
-        Number(
-          item.camposFutebol || 0
-        ),
-      0
-    );
-
-  // ========================================
-  // KPIs
-  // ========================================
-
-  const cobertura =
-    calcularCobertura(
-      rotasDisponibilizadas,
-      rotasTotais
-    );
-
-  const oportunidade =
-    calcularOportunidade(
-      rotasSinergia,
-      rotasDisponibilizadas
-    );
-
-  const conversao =
-    calcularConversao(
-      rotasExecutadas,
-      oportunidades
-    );
-
-  const aderencia =
-    calcularAderencia(
-      embarquesRealizados,
-      embarquesPlanejados
-    );
-
-  const onTime =
-    calcularOnTime(
-      embarquesOnTime,
-      embarquesTotal
-    );
-
-  // ========================================
-  // FINANCEIRO
-  // ========================================
-
-  const saving =
-    calcularSaving(
-      baseline,
-      realizado
-    );
-
-  const reducaoCusto =
-    calcularReducaoCusto(
-      baseline,
-      realizado
-    );
-
-  // SaaS do último mês
-  const investimento =
-    Number(
-      ultimoRegistro.saas || 0
-    );
-
-  // ========================================
-  // VOLUME
-  // Crescimento do último mês
-  // em relação ao mês anterior
-  // ========================================
+  const cobertura = calcularCobertura(rotasDisponibilizadas, rotasTotais);
+  const oportunidade = calcularOportunidade(rotasSinergia, rotasDisponibilizadas);
+  const conversao = calcularConversao(rotasExecutadas, oportunidades);
+  const aderencia = calcularAderencia(embarquesRealizados, embarquesPlanejados);
+  const onTime = calcularOnTime(embarquesOnTime, embarquesTotal);
+  const saving = calcularSaving(baseline, realizado);
+  const reducaoCusto = calcularReducaoCusto(baseline, realizado);
 
   let volume = null;
-
-  if (
-    dadosOrdenados.length >= 2
-  ) {
-
-    const atual =
-      dadosOrdenados[
-        dadosOrdenados.length - 1
-      ];
-
-    const anterior =
-      dadosOrdenados[
-        dadosOrdenados.length - 2
-      ];
-
-    const embarquesAtual =
-      Number(
-        atual.embarquesRealizados || 0
-      );
-
-    const embarquesAnterior =
-      Number(
-        anterior.embarquesRealizados || 0
-      );
-
-    if (
-      embarquesAnterior > 0
-    ) {
-
-      volume =
-        (
-          (
-            embarquesAtual -
-            embarquesAnterior
-          ) /
-          embarquesAnterior
-        ) *
-        100;
-
+  const dadosOrdenados = [...dadosPeriodo].sort((a, b) => new Date(a.mes) - new Date(b.mes));
+  if (dadosOrdenados.length >= 2) {
+    const atual = dadosOrdenados[dadosOrdenados.length - 1];
+    const anterior = dadosOrdenados[dadosOrdenados.length - 2];
+    const embarquesAtual = Number(atual.embarquesRealizados || 0);
+    const embarquesAnterior = Number(anterior.embarquesRealizados || 0);
+    if (embarquesAnterior > 0) {
+      volume = ((embarquesAtual - embarquesAnterior) / embarquesAnterior) * 100;
     }
-
   }
 
-  // ========================================
-  // HISTÓRICO DO SCORE
-  // ========================================
-
-  const historicoScore =
-    calcularHistoricoScore(
-      dadosPeriodo
-    );
-
-  // ========================================
-  // SCORE
-  // ========================================
-
-  const scoreResultado =
-    calcularScore({
-
-      // CRONOGRAMA
-      diasAtraso,
-
-      // UTILIZAÇÃO
-      usuariosAtivos,
-
-      // MALHA
-      cobertura,
-
-      oportunidade,
-
-      // OPERAÇÃO
-      conversao,
-
-      aderencia,
-
-      volume,
-
-      // FINANCEIRO
-      saving,
-
-      investimento,
-
-      // SLA
-      onTime,
-
-    });
-
-  // ========================================
-  // STATUS
-  // ========================================
-
-  const statusScore =
-    obterStatusScore(
-      scoreResultado.score
-    );
-
-  // ========================================
-  // RETORNO
-  // ========================================
+  const historicoScore = calcularHistoricoScore(dadosPeriodo);
+  const scoreResultado = calcularScore({
+    diasAtraso, usuariosAtivos, cobertura, oportunidade, conversao, aderencia, volume, saving, investimento, onTime,
+  });
+  const statusScore = obterStatusScore(scoreResultado.score);
 
   return {
-
-    // ======================================
-    // CRONOGRAMA
-    // ======================================
-
-    diasAtraso,
-
-    // ======================================
-    // MALHA
-    // ======================================
-
-    rotasTotais,
-
-    rotasDisponibilizadas,
-
-    rotasSinergia,
-
-    oportunidades,
-
-    // ======================================
-    // OPERAÇÃO
-    // ======================================
-
-    rotasExecutadas,
-
-    embarquesPlanejados,
-
-    embarquesRealizados,
-
-    usuariosAtivos,
-
-    // ======================================
-    // FINANCEIRO
-    // ======================================
-
-    baseline,
-
-    realizado,
-
-    saving,
-
-    reducaoCusto,
-
-    investimento,
-
-    roi:
-      scoreResultado.roi,
-
-    // ======================================
-    // SUSTENTABILIDADE
-    // ======================================
-
-    co2,
-
-    arvores,
-
-    camposFutebol,
-
-    // ======================================
-    // KPIs
-    // ======================================
-
-    cobertura,
-
-    oportunidade,
-
-    conversao,
-
-    aderencia,
-
-    onTime,
-
-    volume,
-
-    // ======================================
-    // SCORE
-    // ======================================
-
-    score:
-      scoreResultado.score,
-
-    pontuacoes:
-      scoreResultado.pontuacoes,
-
-    indicadoresScore:
-      scoreResultado.indicadores,
-
-    resumoScore:
-      scoreResultado.resumo,
-
-    pontosAtencao:
-      scoreResultado.pontosAtencao,
-
-    pontosFortes:
-      scoreResultado.pontosFortes,
-
-    statusScore,
-
-    // ======================================
-    // HISTÓRICO DO SCORE
-    // ======================================
-
-    historicoScore,
-
-    // ======================================
-    // PERÍODO
-    // ======================================
-
-    dataInicio:
-      dadosOrdenados[0].mes,
-
-    dataFim:
-      ultimoRegistro.mes,
-
+    diasAtraso, rotasTotais, rotasDisponibilizadas, rotasSinergia, oportunidades, rotasExecutadas, 
+    embarquesPlanejados, embarquesRealizados, usuariosAtivos, baseline, realizado, saving, 
+    reducaoCusto, investimento, roi: scoreResultado.roi, co2, arvores, camposFutebol, cobertura, 
+    oportunidade, conversao, aderencia, onTime, volume, score: scoreResultado.score, 
+    pontuacoes: scoreResultado.pontuacoes, indicadoresScore: scoreResultado.indicadores, 
+    resumoScore: scoreResultado.resumo, pontosAtencao: scoreResultado.pontosAtencao, 
+    pontosFortes: scoreResultado.pontosFortes, statusScore, historicoScore,
+    dataInicio: dadosOrdenados[0].mes,
+    dataFim: dadosOrdenados[dadosOrdenados.length - 1].mes,
   };
 }
 
-// ==========================================
-// REFERÊNCIA MENSAL
-// ==========================================
-
-function obterMesReferencia(
-  data
-) {
-
-  const ano =
-    data.getFullYear();
-
-  const mes =
-    String(
-      data.getMonth() + 1
-    ).padStart(
-      2,
-      "0"
-    );
-
+function obterMesReferencia(data) {
+  if (!data) return "";
+  const ano = data.getFullYear();
+  const mes = String(data.getMonth() + 1).padStart(2, "0");
   return `${ano}-${mes}`;
 }

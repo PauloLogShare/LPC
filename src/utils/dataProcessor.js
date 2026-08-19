@@ -12,7 +12,7 @@ export function processarDados(dados) {
       diasAtraso: numero(item["Dias de Atraso"]),
       rotasTotais: numero(item["Rotas Totais"]),
       rotasDisponibilizadas: numero(item["Rotas Disponibilizadas"]),
-      rotasSinergia: numero(item["Rotas com Sinergia"]),
+      rotasSinergia: numero(item["Rotas com Sinergia"] || item["Rotas com Match"]),
       oportunidades: numero(item["Oportunidades Identificadas"]),
       rotasExecutadas: numero(item["Rotas Executadas"]),
       embarquesPlanejados: numero(item["Embarques Planejados"]),

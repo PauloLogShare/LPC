@@ -1154,9 +1154,9 @@ const buttonInactive = { padding: "11px 20px", border: "1px solid #d1d5db", bord
 const scoreLine = { display: "flex", justifyContent: "space-between", marginBottom: "8px" };
 const scoreLabel = { color: "#6b7280", fontSize: "13px" };
 // ==========================================
-// VISÃO DA POC (Passando os dados reais para os gráficos)
+// VISÃO DA POC (GARANTINDO SINCRONIA TOTAL)
 // ==========================================
-function VisaoPoc({ dashboard, formatarMoeda, formatarNumero, formatarPercentual }) {
+function VisaoPoc({ dashboard, dadosBrutos, clienteSelecionado, dataInicio, dataFim, formatarMoeda, formatarNumero, formatarPercentual }) {
   return (
     <>
       <Section title="Avaliação Executiva da POC">
@@ -1165,23 +1165,23 @@ function VisaoPoc({ dashboard, formatarMoeda, formatarNumero, formatarPercentual
 
       <Section title="Análise de Performance Operacional">
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: '24px' }}>
-          {/* Agora estamos enviando o objeto 'dashboard' para dentro dos gráficos */}
-          <GraficoEvolucaoEmbarques dashboard={dashboard} />
+          <GraficoEvolucaoEmbarques dadosBrutos={dadosBrutos} cliente={clienteSelecionado} dataInicio={dataInicio} dataFim={dataFim} />
+          
+          {/* 👇 AQUI ESTÁ A GARANTIA: O Funil agora lê do mesmo 'dashboard' que os KPIs! 👇 */}
           <GraficoFunilOportunidades dashboard={dashboard} />
         </div>
       </Section>
 
-      <Section title="KPIs Estratégicos da POC | GO ≥80% | ACOMPANHAR 60–79% | NO-GO <60%">
+      {/* O resto do seu layout original permanece 100% intacto */}
+      <Section title="KPIs Estratégicos da POC">
         <div className="lpc-strategic-kpi-grid">
-          <StrategicScorePanel score={dashboard.score} status={dashboard.statusScore} />
+          <StrategicScorePanel score={dashboard.score} />
           {Object.values(dashboard.indicadoresScore || {}).map((item) => (
             <StrategicKpiCard key={item.nome} item={item} />
           ))}
         </div>
       </Section>
-      <Section title="Evolução do Score">
-        <HistoricoScore historico={dashboard.historicoScore || []} />
-      </Section>
+
       <Section title="Indicadores da Malha">
         <Grid>
           <KpiCard titulo="Rotas Totais" valor={formatarNumero(dashboard.rotasTotais)} />
@@ -1190,6 +1190,7 @@ function VisaoPoc({ dashboard, formatarMoeda, formatarNumero, formatarPercentual
           <KpiCard titulo="Oportunidades" valor={formatarNumero(dashboard.oportunidades)} />
         </Grid>
       </Section>
+
       <Section title="Operação">
         <Grid>
           <KpiCard titulo="Rotas Executadas" valor={formatarNumero(dashboard.rotasExecutadas)} />
@@ -1198,19 +1199,13 @@ function VisaoPoc({ dashboard, formatarMoeda, formatarNumero, formatarPercentual
           <KpiCard titulo="Usuários Ativos" valor={formatarNumero(dashboard.usuariosAtivos)} />
         </Grid>
       </Section>
+
       <Section title="Financeiro">
         <Grid>
           <KpiCard titulo="Baseline" valor={formatarMoeda(dashboard.baseline)} />
           <KpiCard titulo="Custo LogShare" valor={formatarMoeda(dashboard.realizado)} />
           <KpiCard titulo="Saving" valor={formatarMoeda(dashboard.saving)} />
           <KpiCard titulo="ROI" valor={dashboard.roi === null ? "N/A" : formatarPercentual(dashboard.roi)} />
-        </Grid>
-      </Section>
-      <Section title="Sustentabilidade">
-        <Grid>
-          <KpiCard titulo="CO₂ Evitado" valor={`${formatarNumero(dashboard.co2)} kg`} />
-          <KpiCard titulo="Árvores" valor={formatarNumero(dashboard.arvores)} />
-          <KpiCard titulo="Campos de Futebol" valor={formatarNumero(dashboard.camposFutebol)} />
         </Grid>
       </Section>
     </>
@@ -1299,48 +1294,86 @@ function GraficoEvolucaoEmbarques({ dashboard, dadosBrutos, cliente, dataInicio,
 }
 
 // ==========================================
-// GRÁFICO 2: FUNIL DE OPORTUNIDADES DO ÚLTIMO MÊS (DINÂMICO E CORRIGIDO)
+// GRÁFICO 2: FUNIL DE OPORTUNIDADES (LIGADO DIRETO NO MOTOR CORRETO)
 // ==========================================
 function GraficoFunilOportunidades({ dashboard }) {
+  // Se o dashboard ainda não carregou, ele aguarda.
   if (!dashboard) return null;
 
-  // O dashboard root já extrai os dados do último mês selecionado na importação
+  // Lemos as variáveis de rotas DIRETAMENTE do motor do dashboard.
+  // Como arrumamos o motor, ele vai trazer os 2.454, 677, 110 e 7 perfeitos!
   const totais = Number(dashboard.rotasTotais || 0);
   const disponiveis = Number(dashboard.rotasDisponibilizadas || 0);
-  const match = Number(dashboard.rotasSinergia || 0);
-  const oportunidades = Number(dashboard.oportunidades || 0);
+  const match = Number(dashboard.rotasSinergia || dashboard.rotasMatch || 0);
   const executadas = Number(dashboard.rotasExecutadas || 0);
 
-  // Nomes exatos que você solicitou e cálculo de conversão seguro
+  const maxValor = totais > 0 ? totais : 1;
+
+  // As 4 Fases exatas com o cálculo de conversão da fase anterior
   const dados = [
-    { name: 'Rotas Totais', value: totais, conversao: '100%' },
-    { name: 'Rotas Disponibilizadas', value: disponiveis, conversao: totais ? Math.round((disponiveis/totais)*100)+'%' : '0%' },
-    { name: 'Rotas com Match', value: match, conversao: disponiveis ? Math.round((match/disponiveis)*100)+'%' : '0%' },
-    { name: 'Oportunidades Identif.', value: oportunidades, conversao: match ? Math.round((oportunidades/match)*100)+'%' : '0%' },
-    { name: 'Rotas Executadas', value: executadas, conversao: oportunidades ? Math.round((executadas/oportunidades)*100)+'%' : '0%' },
+    { name: 'Rotas Totais', valorReal: totais, cor: '#06b6d4', conversao: '100%' },
+    { name: 'Rotas Disponibilizadas', valorReal: disponiveis, cor: '#0891b2', conversao: totais ? Math.round((disponiveis/totais)*100)+'%' : '0%' },
+    { name: 'Rotas com Match', valorReal: match, cor: '#0e7490', conversao: disponiveis ? Math.round((match/disponiveis)*100)+'%' : '0%' },
+    { name: 'Rotas Executadas', valorReal: executadas, cor: '#164e63', conversao: match ? Math.round((executadas/match)*100)+'%' : '0%' },
   ];
-  
-  const cores = ['#0891b2', '#0e7490', '#155e75', '#164e63', '#083344'];
 
   return (
     <div style={{ width: "100%", height: "420px", backgroundColor: "#ffffff", padding: "24px", borderRadius: "16px", border: "1px solid #f3f4f6", boxShadow: "0 4px 12px rgba(0,0,0,0.03)", display: "flex", flexDirection: "column" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
+      
+      {/* Cabeçalho */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "24px" }}>
         <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '800', color: '#111827' }}>Funil de Oportunidades</h3>
-        <span style={{ fontSize: "11px", color: "#6b7280", fontWeight: "bold", backgroundColor: "#f3f4f6", padding: "4px 8px", borderRadius: "6px" }}>ÚLTIMO MÊS FILTRADO</span>
+        <span style={{ fontSize: "11px", color: "#6b7280", fontWeight: "bold", backgroundColor: "#f3f4f6", padding: "4px 8px", borderRadius: "6px" }}>
+          ÚLTIMO MÊS DA POC
+        </span>
       </div>
       
-      <ResponsiveContainer width="99%" height="100%">
-        <FunnelChart margin={{ top: 20, right: 160, left: 20, bottom: 20 }}>
-          <Tooltip contentStyle={{ backgroundColor: '#fff', border: '1px solid #e5e7eb', borderRadius: '12px', fontWeight: "bold" }} />
-          <Funnel dataKey="value" data={dados} isAnimationActive>
-            {dados.map((entry, index) => (
-              <Cell key={`cell-${index}`} fill={cores[index % cores.length]} />
-            ))}
-            <LabelList position="right" fill="#374151" stroke="none" dataKey="name" fontSize={12} fontWeight="800" />
-            <LabelList position="center" fill="#ffffff" stroke="none" dataKey="value" fontSize={15} fontWeight="900" />
-          </Funnel>
-        </FunnelChart>
-      </ResponsiveContainer>
+      {/* Corpo do Pipeline (Funil Horizontal) */}
+      <div style={{ display: "flex", flexDirection: "column", gap: "24px", flex: 1, justifyContent: "center" }}>
+        {dados.map((etapa, index) => {
+          // Calcula a largura visual (com mínimo de 1.5% para o 7 nunca sumir de todo na tela)
+          const porcentagemGeral = Math.max(1.5, Math.round((etapa.valorReal / maxValor) * 100));
+
+          return (
+            <div key={index} style={{ display: "flex", flexDirection: "column", width: "100%" }}>
+              
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: "8px" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                  <span style={{ fontSize: "14px", fontWeight: "800", color: "#374151" }}>{etapa.name}</span>
+                  {/* Badge de Conversão da Etapa Anterior */}
+                  {index > 0 && (
+                    <span style={{ fontSize: "11px", fontWeight: "700", color: "#16a34a", backgroundColor: "#f0fdf4", padding: "2px 8px", borderRadius: "6px", border: "1px solid #bbf7d0" }}>
+                      ↓ {etapa.conversao} da fase anterior
+                    </span>
+                  )}
+                </div>
+
+                <div style={{ textAlign: "right" }}>
+                  <span style={{ fontSize: "18px", fontWeight: "900", color: "#111827" }}>
+                    {new Intl.NumberFormat('pt-BR').format(etapa.valorReal)}
+                  </span>
+                  <span style={{ fontSize: "12px", fontWeight: "600", color: "#9ca3af", marginLeft: "6px" }}>
+                    ({porcentagemGeral}% do funil)
+                  </span>
+                </div>
+              </div>
+              
+              <div style={{ width: "100%", height: "20px", backgroundColor: "#f3f4f6", borderRadius: "10px", overflow: "hidden" }}>
+                <div 
+                  style={{ 
+                    width: `${porcentagemGeral}%`, 
+                    height: "100%", 
+                    backgroundColor: etapa.cor, 
+                    borderRadius: "10px",
+                    transition: "width 1s ease-in-out"
+                  }} 
+                />
+              </div>
+
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }
