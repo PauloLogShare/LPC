@@ -492,7 +492,7 @@ function App() {
             />
           )}
 
-          {visao === "clevel" && poçrtfolio && (
+          {visao === "clevel" && portfolio && (
             <VisaoCLevel
               portfolio={portfolio}
               formatarMoeda={formatarMoeda}
@@ -828,8 +828,6 @@ function ResumoExecutivo({ dashboard }) {
 
         <ExecutiveCard titulo="Variação" valor={variacao === null ? "N/A" : `${variacao >= 0 ? "+" : ""}${variacao.toFixed(1)} pts`} detalhe={scoreAnterior === null ? "Sem mês anterior" : `Anterior: ${scoreAnterior.toFixed(1)}`} cor={corTendencia} />
         <ExecutiveCard titulo="Tendência" valor={tendencia} detalhe="Comparação com mês anterior" cor={corTendencia} />
-        <ExecutiveCard titulo="Melhor indicador" valor={melhorIndicador?.nome || "N/A"} detalhe={melhorIndicador ? `Atingimento: ${Number(melhorIndicador.atingimento).toFixed(1)}%` : ""} cor="#16a34a" />
-        <ExecutiveCard titulo="Recomendação" valor={recomendacao} detalhe={`${verdes} dentro • ${amarelos} atenção • ${vermelhos} abaixo`} cor={corRecomendacao} />
       </div>
 
       {/* GRID INFERIOR (DESTAQUES E ATENÇÃO) */}
