@@ -938,33 +938,55 @@ function HistoricoScore({ historico }) {
 }
 
 // ==========================================
-// PAINEL ESTRATÉGICO DOS KPIs DA POC
+// PAINEL DE DESEMPENHO GERAL (SCORE COLORIDO COM GESTÃO DE RISCO)
 // ==========================================
-function StrategicScorePanel({ score, status }) {
+function StrategicScorePanel({ score }) {
   const valor = Number(score || 0);
-  let cor = "#d9232e";
-  let leitura = "NO-GO";
-  let faixa = "< 60%";
-  if (valor >= 80) { cor = "#22963a"; leitura = "GO"; faixa = "≥ 80%"; }
-  else if (valor >= 60) { cor = "#ee9f00"; leitura = "ACOMPANHAR"; faixa = "60% – 79%"; }
-  const raio = 42;
-  const circunferencia = 2 * Math.PI * raio;
-  const progresso = Math.min(Math.max(valor, 0), 100);
-  const dash = (progresso / 100) * circunferencia;
+  
+  // Padrão: Menor que 60 (Vermelho - Alto Risco)
+  let corTexto = "#dc2626"; 
+  let bgCard = "#fef2f2"; 
+  let borderCard = "#fecaca";
+  let riscoLabel = "ALTO RISCO";
+
+  // Maior ou igual a 81 (Verde - Risco Baixo)
+  if (valor >= 81) { 
+    corTexto = "#16a34a"; 
+    bgCard = "#f0fdf4"; 
+    borderCard = "#bbf7d0";
+    riscoLabel = "RISCO BAIXO";
+  } 
+  // Entre 60 e 80 (Amarelo/Laranja - Risco Moderado)
+  else if (valor >= 60) { 
+    corTexto = "#d97706"; 
+    bgCard = "#fffbeb"; 
+    borderCard = "#fde68a";
+    riscoLabel = "RISCO MODERADO";
+  }
+
   return (
-    <div className={`lpc-strategic-score-panel ${valor >= 80 ? "score-go" : valor >= 60 ? "score-warning" : "score-danger"}`} style={{ "--score-color": cor }}>
-      <div className="lpc-strategic-score-title">SCORE POC</div>
-      <div className="lpc-score-ring">
-        <svg viewBox="0 0 110 110" aria-hidden="true">
-          <circle cx="55" cy="55" r={raio} className="lpc-score-ring-track" />
-          <circle cx="55" cy="55" r={raio} className="lpc-score-ring-progress" strokeDasharray={`${dash} ${circunferencia}`} />
-        </svg>
-        <strong>{valor.toFixed(0)}%</strong>
+    <div style={{ backgroundColor: bgCard, padding: "24px", borderRadius: "16px", border: `2px solid ${borderCard}`, boxShadow: "0 4px 12px rgba(0,0,0,0.03)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", transition: "all 0.3s ease" }}>
+      
+      {/* Cabeçalho com Título e Label Sutil */}
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "6px" }}>
+        <div style={{ fontSize: "12px", color: corTexto, fontWeight: "800", textTransform: "uppercase", letterSpacing: "1px" }}>
+          DESEMPENHO GERAL
+        </div>
+        <div style={{ fontSize: "10px", color: corTexto, fontWeight: "800", backgroundColor: `${corTexto}20`, padding: "2px 8px", borderRadius: "8px", textTransform: "uppercase" }}>
+          {riscoLabel}
+        </div>
       </div>
-      <div className="lpc-score-performance">Desempenho Geral</div>
-      <div className="lpc-score-current-status" style={{ color: cor }}>
-        <strong>{leitura}</strong><small>{faixa}</small>
+      
+      {/* Gráfico Circular de Porcentagem */}
+      <div style={{ position: "relative", display: "flex", alignItems: "center", justifyContent: "center", width: "120px", height: "120px", borderRadius: "50%", border: `8px solid ${corTexto}30`, borderTopColor: corTexto, margin: "20px 0" }}>
+        <div style={{ fontSize: "32px", fontWeight: "900", color: corTexto }}>{valor.toFixed(0)}%</div>
       </div>
+      
+      {/* Pílula de Destaque Inferior */}
+      <div style={{ fontWeight: "900", color: "#ffffff", backgroundColor: corTexto, padding: "6px 20px", borderRadius: "20px", fontSize: "14px", letterSpacing: "0.5px" }}>
+        {riscoLabel}
+      </div>
+      
     </div>
   );
 }
