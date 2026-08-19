@@ -1173,8 +1173,9 @@ const buttonActive = { padding: "11px 20px", border: "none", borderRadius: "7px"
 const buttonInactive = { padding: "11px 20px", border: "1px solid #d1d5db", borderRadius: "7px", backgroundColor: "#ffffff", color: "#374151", fontWeight: "bold", cursor: "pointer" };
 const scoreLine = { display: "flex", justifyContent: "space-between", marginBottom: "8px" };
 const scoreLabel = { color: "#6b7280", fontSize: "13px" };
+
 // ==========================================
-// VISÃO DA POC (GARANTINDO SINCRONIA TOTAL)
+// VISÃO DA POC (COM CARDS DE SUSTENTABILIDADE ESTRATÉGICOS)
 // ==========================================
 function VisaoPoc({ dashboard, dadosBrutos, clienteSelecionado, dataInicio, dataFim, formatarMoeda, formatarNumero, formatarPercentual }) {
   return (
@@ -1186,19 +1187,31 @@ function VisaoPoc({ dashboard, dadosBrutos, clienteSelecionado, dataInicio, data
       <Section title="Análise de Performance Operacional">
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: '24px' }}>
           <GraficoEvolucaoEmbarques dadosBrutos={dadosBrutos} cliente={clienteSelecionado} dataInicio={dataInicio} dataFim={dataFim} />
-          
-          {/* 👇 AQUI ESTÁ A GARANTIA: O Funil agora lê do mesmo 'dashboard' que os KPIs! 👇 */}
           <GraficoFunilOportunidades dashboard={dashboard} />
         </div>
       </Section>
 
-      {/* O resto do seu layout original permanece 100% intacto */}
       <Section title="KPIs Estratégicos da POC">
         <div className="lpc-strategic-kpi-grid">
           <StrategicScorePanel score={dashboard.score} />
+          
           {Object.values(dashboard.indicadoresScore || {}).map((item) => (
             <StrategicKpiCard key={item.nome} item={item} />
           ))}
+
+          {/* NOVOS CARDS AMBIENTAIS */}
+          <SustainabilityCard 
+            titulo="CO₂ Evitado (kg)" 
+            valor={formatarNumero(dashboard.co2)} 
+            volumeCrescimento={dashboard.volume}
+            icone="☁️"
+          />
+          <SustainabilityCard 
+            titulo="Árvores Preservadas" 
+            valor={formatarNumero(dashboard.arvores)} 
+            volumeCrescimento={dashboard.volume}
+            icone="🌳"
+          />
         </div>
       </Section>
 
@@ -1231,6 +1244,7 @@ function VisaoPoc({ dashboard, dadosBrutos, clienteSelecionado, dataInicio, data
     </>
   );
 }
+
 
 // ==========================================
 // GRÁFICO 1: EVOLUÇÃO DE EMBARQUES E ADERÊNCIA (VERSÃO DEFINITIVA)
@@ -1400,6 +1414,44 @@ function GraficoFunilOportunidades({ dashboard }) {
           );
         })}
       </div>
+    </div>
+  );
+}
+// ==========================================
+// CARD DE SUSTENTABILIDADE (PEGADA AMBIENTAL)
+// ==========================================
+function SustainabilityCard({ titulo, valor, volumeCrescimento, icone }) {
+  // Se o volume de embarques cresceu, o impacto verde também cresceu!
+  const crescimentoTexto = volumeCrescimento !== null 
+    ? `${volumeCrescimento >= 0 ? '+' : ''}${Number(volumeCrescimento).toFixed(1)}% vs mês anterior`
+    : "Acompanhamento contínuo";
+  
+  const corVerde = "#16a34a";
+  const bgFundo = "#f0fdf4";
+
+  return (
+    <div style={{ backgroundColor: "#ffffff", padding: "24px", borderRadius: "16px", border: "1px solid #f3f4f6", borderBottom: `6px solid ${corVerde}`, boxShadow: "0 4px 12px rgba(0,0,0,0.03)", display: "flex", flexDirection: "column", justifyContent: "space-between", height: "100%" }}>
+      
+      <div>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "16px" }}>
+          <div style={{ fontSize: "15px", fontWeight: "800", color: "#111827", textTransform: "uppercase" }}>{titulo}</div>
+          <div style={{ backgroundColor: bgFundo, color: corVerde, padding: "8px", borderRadius: "10px" }}>
+            <span style={{ fontSize: "18px" }}>{icone}</span>
+          </div>
+        </div>
+        
+        <div style={{ fontSize: "32px", fontWeight: "900", color: corVerde, lineHeight: "1" }}>
+          {valor}
+        </div>
+      </div>
+
+      <div style={{ marginTop: "24px", display: "flex", alignItems: "center", gap: "8px", backgroundColor: bgFundo, padding: "10px 12px", borderRadius: "8px", border: "1px solid #bbf7d0" }}>
+        <span style={{ fontSize: "16px" }}>🌱</span>
+        <span style={{ fontSize: "12px", color: "#15803d", fontWeight: "800" }}>
+          {crescimentoTexto}
+        </span>
+      </div>
+
     </div>
   );
 }

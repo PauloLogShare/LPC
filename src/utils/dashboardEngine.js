@@ -31,37 +31,33 @@ export function calcularDashboard(dados, dataInicio = null, dataFim = null) {
   // ========================================
   // SNAPSHOT CORRETO: ÚLTIMO MÊS DE CADA CLIENTE
   // ========================================
-  // Agrupa e encontra o último registro Válido INDIVIDUAL de cada cliente!
   const ultimosRegistrosPorCliente = {};
-  
   dadosPeriodo.forEach(reg => {
     const cliente = reg.cliente || "Desconhecido";
     if (!ultimosRegistrosPorCliente[cliente]) {
-       ultimosRegistrosPorCliente[cliente] = reg;
+      ultimosRegistrosPorCliente[cliente] = reg;
     } else {
-       if (reg.mesReferencia > ultimosRegistrosPorCliente[cliente].mesReferencia) {
-           ultimosRegistrosPorCliente[cliente] = reg;
-       }
+      if (reg.mesReferencia > ultimosRegistrosPorCliente[cliente].mesReferencia) {
+        ultimosRegistrosPorCliente[cliente] = reg;
+      }
     }
   });
 
-  // SOMA OS VALORES DOS ÚLTIMOS REGISTROS
   let rotasTotais = 0, rotasDisponibilizadas = 0, rotasSinergia = 0, oportunidades = 0;
-  let rotasExecutadas = 0, usuariosAtivos = 0, diasAtraso = 0, investimento = 0;
+  let rotasExecutadas = 0, usuariosAtivos = 0, diasAtraso = 0;
 
   Object.values(ultimosRegistrosPorCliente).forEach(reg => {
     rotasTotais += Number(reg.rotasTotais || 0);
     rotasDisponibilizadas += Number(reg.rotasDisponibilizadas || 0);
-    rotasSinergia += Number(reg.rotasSinergia || reg.rotasMatch || 0); // Lê as duas formas de coluna
+    rotasSinergia += Number(reg.rotasSinergia || reg.rotasMatch || 0);
     oportunidades += Number(reg.oportunidades || 0);
     rotasExecutadas += Number(reg.rotasExecutadas || 0);
     usuariosAtivos += Number(reg.usuariosAtivos || 0);
     diasAtraso = Math.max(diasAtraso, Number(reg.diasAtraso || 0));
-    investimento += Number(reg.saas || 0);
   });
 
   // ========================================
-  // CONSOLIDADOS DO PERÍODO COMPLETO (Sua lógica original)
+  // CONSOLIDADOS DO PERÍODO COMPLETO
   // ========================================
   const embarquesPlanejados = dadosPeriodo.reduce((total, item) => total + Number(item.embarquesPlanejados || 0), 0);
   const embarquesRealizados = dadosPeriodo.reduce((total, item) => total + Number(item.embarquesRealizados || 0), 0);
@@ -72,17 +68,25 @@ export function calcularDashboard(dados, dataInicio = null, dataFim = null) {
   const co2 = dadosPeriodo.reduce((total, item) => total + Number(item.co2 || 0), 0);
   const arvores = dadosPeriodo.reduce((total, item) => total + Number(item.arvores || 0), 0);
   const camposFutebol = dadosPeriodo.reduce((total, item) => total + Number(item.camposFutebol || 0), 0);
+  const investimento = dadosPeriodo.reduce((total, item) => total + Number(item.saas || 0), 0);
 
   // ========================================
-  // CÁLCULO DOS KPIs
+  // CÁLCULO DOS KPIs E FINANCEIRO
   // ========================================
   const cobertura = calcularCobertura(rotasDisponibilizadas, rotasTotais);
   const oportunidade = calcularOportunidade(rotasSinergia, rotasDisponibilizadas);
   const conversao = calcularConversao(rotasExecutadas, oportunidades);
   const aderencia = calcularAderencia(embarquesRealizados, embarquesPlanejados);
   const onTime = calcularOnTime(embarquesOnTime, embarquesTotal);
-  const saving = calcularSaving(baseline, realizado);
-  const reducaoCusto = calcularReducaoCusto(baseline, realizado);
+
+  // MÁGICA DO SAVING E ROI:
+  const reducaoCusto = baseline - realizado;
+  const savingLiquido = reducaoCusto - investimento; 
+  const metaRoiSaaS = investimento * 2; 
+
+  const roiCalculado = investimento > 0 
+    ? (savingLiquido / metaRoiSaaS) * 100 
+    : (savingLiquido > 0 ? "Infinito" : 0);
 
   let volume = null;
   const dadosOrdenados = [...dadosPeriodo].sort((a, b) => new Date(a.mes) - new Date(b.mes));
@@ -97,21 +101,45 @@ export function calcularDashboard(dados, dataInicio = null, dataFim = null) {
   }
 
   const historicoScore = calcularHistoricoScore(dadosPeriodo);
+  
   const scoreResultado = calcularScore({
-    diasAtraso, usuariosAtivos, cobertura, oportunidade, conversao, aderencia, volume, saving, investimento, onTime,
+    diasAtraso, usuariosAtivos, cobertura, oportunidade, conversao, aderencia, volume, saving: savingLiquido, investimento, onTime,
   });
   const statusScore = obterStatusScore(scoreResultado.score);
 
+  // ========================================
+  // 🚀 INJEÇÃO FORÇADA DO ROI NO CARD ESTRATÉGICO 🚀
+  // ========================================
+  if (scoreResultado.indicadores) {
+    Object.values(scoreResultado.indicadores).forEach(ind => {
+      // Se o indicador for o do ROI, nós sobrescrevemos o valor do motor antigo!
+      if (ind.nome && ind.nome.toUpperCase().includes("ROI")) {
+        ind.resultado = roiCalculado;
+        
+        // Ajusta a cor e o status do Card visualmente
+        if (roiCalculado === "Infinito") {
+          ind.atingimento = 100;
+          ind.status = "verde";
+        } else {
+          // Se for negativo (-36%), vai ficar com status vermelho automaticamente
+          ind.atingimento = roiCalculado >= 100 ? 100 : (roiCalculado > 0 ? roiCalculado : 0);
+          ind.status = roiCalculado >= 100 ? "verde" : (roiCalculado >= 50 ? "amarelo" : "vermelho");
+        }
+      }
+    });
+  }
+
   return {
     diasAtraso, rotasTotais, rotasDisponibilizadas, rotasSinergia, oportunidades, rotasExecutadas, 
-    embarquesPlanejados, embarquesRealizados, usuariosAtivos, baseline, realizado, saving, 
-    reducaoCusto, investimento, roi: scoreResultado.roi, co2, arvores, camposFutebol, cobertura, 
+    embarquesPlanejados, embarquesRealizados, usuariosAtivos, baseline, realizado, 
+    saving: savingLiquido, reducaoCusto, investimento, 
+    roi: roiCalculado, co2, arvores, camposFutebol, cobertura, 
     oportunidade, conversao, aderencia, onTime, volume, score: scoreResultado.score, 
     pontuacoes: scoreResultado.pontuacoes, indicadoresScore: scoreResultado.indicadores, 
     resumoScore: scoreResultado.resumo, pontosAtencao: scoreResultado.pontosAtencao, 
     pontosFortes: scoreResultado.pontosFortes, statusScore, historicoScore,
-    dataInicio: dadosOrdenados[0].mes,
-    dataFim: dadosOrdenados[dadosOrdenados.length - 1].mes,
+    dataInicio: dadosOrdenados.length > 0 ? dadosOrdenados[0].mes : null,
+    dataFim: dadosOrdenados.length > 0 ? dadosOrdenados[dadosOrdenados.length - 1].mes : null,
   };
 }
 
