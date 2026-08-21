@@ -365,10 +365,10 @@ function App() {
             {!menuRecolhido && visao.startsWith("pricing") && (
               <div className="lpc-sidebar-submenu">
                 <button className={`lpc-sidebar-subitem ${visao === "pricing_simulador" ? "active" : ""}`} onClick={() => { setVisao("pricing_simulador"); setMenuAtivo("pricing_simulador"); }}>🧭 Simulador de Frete</button>
+                <button className={`lpc-sidebar-subitem ${visao === "pricing_historico" ? "active" : ""}`} onClick={() => { setVisao("pricing_historico"); setMenuAtivo("pricing_historico"); }}>📤 Histórico de Fretes</button>
                 <button className={`lpc-sidebar-subitem ${visao === "pricing_parametros" ? "active" : ""}`} onClick={() => { setVisao("pricing_parametros"); setMenuAtivo("pricing_parametros"); }}>⚙️ Parâmetros Gerais</button>
                 <button className={`lpc-sidebar-subitem ${visao === "pricing_cadastro" ? "active" : ""}`} onClick={() => { setVisao("pricing_cadastro"); setMenuAtivo("pricing_cadastro"); }}>🏢 Cadastro de Parceiros</button>
                 <button className={`lpc-sidebar-subitem ${visao === "pricing_antt" ? "active" : ""}`} onClick={() => { setVisao("pricing_antt"); setMenuAtivo("pricing_antt"); }}>📋 Tabela ANTT</button>
-                <button className={`lpc-sidebar-subitem ${visao === "pricing_historico" ? "active" : ""}`} onClick={() => { setVisao("pricing_historico"); setMenuAtivo("pricing_historico"); }}>📤 Histórico de Fretes</button>
                 <button className={`lpc-sidebar-subitem ${visao === "pricing_manual" ? "active" : ""}`} onClick={() => { setVisao("pricing_manual"); setMenuAtivo("pricing_manual"); }}>📖 Manual do Módulo</button>
               </div>
             )}
