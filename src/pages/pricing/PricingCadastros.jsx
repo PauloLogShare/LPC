@@ -92,58 +92,123 @@ export default function PricingCadastros({
 
   const isModal = Boolean(onFechar);
 
-  return (
-    <div style={isModal ? st.panelModal : st.panelPage}>
-      {/* ── Top Header ────────────────────────────────────────────────────── */}
-      <div style={st.header}>
+  const content = (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', width: '100%' }}>
+      {/* ── Toolbar / Cabeçalho Idêntico ao de Parâmetros Gerais & Calculadora ─────────── */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
         <div>
-          <div style={{ color: '#fff', fontWeight: '900', fontSize: '18px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            🏢 Central de Cadastros & Custos Operacionais
-          </div>
-          <div style={{ color: '#94a3b8', fontSize: '12px', marginTop: '2px' }}>
-            Gerencie Embarcadores, Parceiros, Equipamentos, Despesas de Motoristas e a Matriz de Custo por Quilômetro ($R$/km$)
+          <h2 className="lpc-section-title" style={{ margin: 0, fontSize: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            🏢 Cadastro de Parceiros & Gestão Operacional
+          </h2>
+          <div style={{ fontSize: '10.5px', color: '#94a3b8', marginTop: '1px' }}>
+            Gerencie Embarcadores, Parceiros de Transporte, Custos de Veículos, Motoristas e Matriz de Custo por KM
           </div>
         </div>
-        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'center' }}>
           {msgSalvo && (
             <span style={{ background: '#16a34a', color: '#fff', padding: '4px 10px', borderRadius: '6px', fontSize: '11px', fontWeight: '800' }}>
-              ✓ {msgSalvo}
+              ✔ {msgSalvo}
             </span>
           )}
+          <button
+            type="button"
+            onClick={() => {
+              if (window.confirm('Restaurar todos os parâmetros de custos operacionais para os padrões de fábrica?')) {
+                resetarParaPadrao();
+                notificarSalvo();
+              }
+            }}
+            style={toolBtn}
+          >
+            🔄 Restaurar Padrões
+          </button>
           {isModal && (
-            <button
-              onClick={onFechar}
-              style={{ background: 'rgba(255,255,255,0.12)', border: 'none', color: '#fff', borderRadius: '8px', width: '34px', height: '34px', cursor: 'pointer', fontSize: '18px' }}
-            >×</button>
+            <button onClick={onFechar} style={{ ...toolBtn, color: '#64748b' }}>
+              ✕ Fechar
+            </button>
           )}
         </div>
       </div>
 
-      {/* ── Submenu de Abas ───────────────────────────────────────────────── */}
-      <div style={st.tabsBar}>
+      {/* ── 4 KPIs no Mesmo Padrão de Parâmetros Gerais ─────────────────────── */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px' }}>
+        <div style={{ ...kpiCardSt, borderLeft: '4px solid #0369a1' }}>
+          <div style={kpiTitleSt}>Embarcadores & Parceiros</div>
+          <div style={{ fontSize: '15px', fontWeight: '900', color: '#0369a1', margin: '3px 0' }}>
+            {cadastros.length} cadastrados
+          </div>
+          <div style={{ fontSize: '9.5px', color: '#64748b' }}>
+            {cadastros.filter(c => c.tipo === 'embarcador').length} Emb. | {cadastros.filter(c => c.tipo === 'parceiro').length} Transp.
+          </div>
+        </div>
+
+        <div style={{ ...kpiCardSt, borderLeft: '4px solid #7c3aed' }}>
+          <div style={kpiTitleSt}>Custo Veicular / KM</div>
+          <div style={{ fontSize: '15px', fontWeight: '900', color: '#7c3aed', margin: '3px 0' }}>
+            R$ {(apuracao.totalFixoPorKm + apuracao.totalVariavelPorKm || 0).toFixed(2)}/km
+          </div>
+          <div style={{ fontSize: '9.5px', color: '#64748b' }}>
+            Fixo R$ {apuracao.totalFixoPorKm.toFixed(2)} + Var R$ {apuracao.totalVariavelPorKm.toFixed(2)}
+          </div>
+        </div>
+
+        <div style={{ ...kpiCardSt, borderLeft: '4px solid #d97706' }}>
+          <div style={kpiTitleSt}>Custo Motorista / KM</div>
+          <div style={{ fontSize: '15px', fontWeight: '900', color: '#d97706', margin: '3px 0' }}>
+            R$ {(apuracao.totalPessoalPorKm || 0).toFixed(2)}/km
+          </div>
+          <div style={{ fontSize: '9.5px', color: '#64748b' }}>Salário, Encargos e Diárias</div>
+        </div>
+
+        <div style={{ ...kpiCardSt, borderLeft: '4px solid #15803d' }}>
+          <div style={kpiTitleSt}>Custo Total Operacional</div>
+          <div style={{ fontSize: '15px', fontWeight: '900', color: '#15803d', margin: '3px 0' }}>
+            R$ {(apuracao.custoOperacionalTotalPorKm || 0).toFixed(2)}/km
+          </div>
+          <div style={{ fontSize: '9.5px', color: '#64748b' }}>
+            Matriz Consolidada R$/km
+          </div>
+        </div>
+      </div>
+
+      {/* ── Submenu de Abas Estilizado ───────────────────────────────────────── */}
+      <div style={{ display: 'flex', gap: '6px', background: '#f1f5f9', padding: '4px', borderRadius: '8px', border: '1px solid #e2e8f0', flexWrap: 'wrap' }}>
         {[
-          { id: 'embarcadores', label: '🏢 Embarcadores & Parceiros', badge: cadastros.length },
-          { id: 'veiculo',      label: '🚛 Veículo & Custos do Equipamento', badge: `R$ ${apuracao.totalFixoPorKm + apuracao.totalVariavelPorKm ? (apuracao.totalFixoPorKm + apuracao.totalVariavelPorKm).toFixed(2) : '4,72'}/km` },
+          { id: 'embarcadores', label: '🏢 Embarcadores & Parceiros', badge: `${cadastros.length}` },
+          { id: 'veiculo',      label: '🚛 Veículo & Custos do Equipamento', badge: `R$ ${(apuracao.totalFixoPorKm + apuracao.totalVariavelPorKm).toFixed(2)}/km` },
           { id: 'motorista',    label: '👨‍✈️ Custos de Motorista & Diárias', badge: `R$ ${apuracao.totalPessoalPorKm.toFixed(2)}/km` },
-          { id: 'consolidado',  label: '📊 Apuração Custo/KM & Formação de Preço', badge: `Total R$ ${apuracao.custoOperacionalTotalPorKm.toFixed(2)}/km` },
+          { id: 'consolidado',  label: '📊 Apuração Custo/KM & Formação', badge: `R$ ${apuracao.custoOperacionalTotalPorKm.toFixed(2)}/km` },
         ].map((aba) => (
           <button
             key={aba.id}
+            type="button"
             onClick={() => setAbaAtiva(aba.id)}
             style={{
-              ...st.tabBtn,
-              background: abaAtiva === aba.id ? '#052a67' : '#f8fafc',
-              color: abaAtiva === aba.id ? '#fff' : '#475569',
-              borderBottom: abaAtiva === aba.id ? '3px solid #14b8a6' : '1px solid #e2e8f0',
+              flex: 1,
+              minWidth: '180px',
+              padding: '7px 12px',
+              borderRadius: '6px',
+              border: 'none',
+              cursor: 'pointer',
+              fontSize: '11px',
+              fontWeight: '800',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '6px',
+              transition: 'all 0.15s ease',
+              background: abaAtiva === aba.id ? '#052a67' : 'transparent',
+              color: abaAtiva === aba.id ? '#ffffff' : '#475569',
+              boxShadow: abaAtiva === aba.id ? '0 1px 3px rgba(5,42,103,0.3)' : 'none',
             }}
           >
             <span>{aba.label}</span>
             <span style={{
-              fontSize: '10px',
-              padding: '2px 6px',
+              fontSize: '9.5px',
+              padding: '1px 6px',
               borderRadius: '10px',
               background: abaAtiva === aba.id ? 'rgba(255,255,255,0.2)' : '#e2e8f0',
-              color: abaAtiva === aba.id ? '#fff' : '#334155',
+              color: abaAtiva === aba.id ? '#fff' : '#475569',
               fontWeight: '800',
             }}>
               {aba.badge}
@@ -152,7 +217,8 @@ export default function PricingCadastros({
         ))}
       </div>
 
-      <div style={st.body}>
+      {/* ── Painel de Conteúdo com as Abas ──────────────────────────────────── */}
+      <div style={{ background: '#fff', borderRadius: '8px', border: '1px solid #e2e8f0', boxShadow: '0 1px 4px rgba(15,23,42,0.05)', padding: '16px' }}>
         {/* ═══════════════════════════════════════════════════════════════════
             ABA 1: EMBARCADORES & PARCEIROS
            ═══════════════════════════════════════════════════════════════════ */}
@@ -733,39 +799,76 @@ export default function PricingCadastros({
       </div>
     </div>
   );
+
+  if (isModal) {
+    return (
+      <div style={st.modalOverlay}>
+        <div style={st.modalContent}>
+          {content}
+        </div>
+      </div>
+    );
+  }
+
+  return content;
 }
 
+const toolBtn = {
+  fontSize: '11px',
+  fontWeight: '700',
+  padding: '6px 12px',
+  borderRadius: '6px',
+  border: '1px solid #e2e8f0',
+  cursor: 'pointer',
+  background: '#fff',
+  color: '#334155',
+  display: 'flex',
+  alignItems: 'center',
+  gap: '4px',
+  boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
+};
+
+const kpiCardSt = {
+  background: '#fff',
+  border: '1px solid #e2e8f0',
+  borderRadius: '8px',
+  padding: '8px 12px',
+  boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
+};
+
+const kpiTitleSt = {
+  fontSize: '10px',
+  fontWeight: '800',
+  color: '#64748b',
+  textTransform: 'uppercase',
+  letterSpacing: '0.04em',
+};
+
 const st = {
-  panelPage: {
+  modalOverlay: {
+    position: 'fixed',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    background: 'rgba(15, 23, 42, 0.65)',
+    backdropFilter: 'blur(4px)',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 9999,
+    padding: '16px',
+  },
+  modalContent: {
     background: '#f8fafc',
     borderRadius: '12px',
     border: '1px solid #e2e8f0',
-    overflow: 'hidden',
-    display: 'flex',
-    flexDirection: 'column',
-  },
-  panelModal: {
-    position: 'fixed',
-    top: '50%',
-    left: '50%',
-    transform: 'translate(-50%, -50%)',
-    width: '94vw',
-    maxWidth: '1100px',
+    maxWidth: '1200px',
+    width: '100%',
     maxHeight: '92vh',
-    background: '#f8fafc',
-    borderRadius: '16px',
-    boxShadow: '0 25px 50px -12px rgba(0,0,0,0.3)',
-    zIndex: 1000,
-    display: 'flex',
-    flexDirection: 'column',
-    overflow: 'hidden',
-  },
-  header: {
-    background: '#052a67',
-    padding: '16px 20px',
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    overflowY: 'auto',
+    padding: '16px',
+    boxShadow: '0 20px 25px -5px rgba(0,0,0,0.2)',
   },
   tabsBar: {
     display: 'flex',
