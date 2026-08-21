@@ -26,9 +26,12 @@ export function calcularAderencia(
   embarquesRealizados,
   embarquesPlanejados
 ) {
-  if (!embarquesPlanejados) return 0;
+  const planejados = Number(embarquesPlanejados || 0);
+  const realizados = Number(embarquesRealizados || 0);
 
-  return (embarquesRealizados / embarquesPlanejados) * 100;
+  if (planejados <= 0 || realizados <= 0) return 0;
+
+  return (realizados / planejados) * 100;
 }
 
 export function calcularOnTime(

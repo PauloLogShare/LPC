@@ -1,0 +1,3575 @@
+<!DOCTYPE html>
+
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>LogShare - Calculadora de Frete</title>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    :root {
+      --azul: #052a67;
+      --azul-escuro: #031d47;
+      --verde: #14b8a6;
+      --fundo: #f4f7fb;
+      --texto: #1e293b;
+      --borda: #dbe2ea;
+      --sombra: 0 4px 14px rgba(15, 23, 42, 0.07);
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--fundo);
+      color: var(--texto);
+    }
+
+    .container {
+      display: flex;
+      min-height: 100vh;
+    }
+
+    .sidebar {
+      width: 58px;
+      background: linear-gradient(180deg, var(--azul), var(--azul-escuro));
+      padding: 14px 8px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+      flex-shrink: 0;
+    }
+
+    .logo {
+      color: white;
+      font-size: 24px;
+      font-weight: 800;
+      margin-bottom: 10px;
+    }
+
+    .menu-icon {
+      width: 42px;
+      height: 42px;
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.08);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 16px;
+      border: none;
+      cursor: pointer;
+    }
+
+    .menu-text {
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 0;
+    }
+
+    .menu-icon:hover,
+    .menu-icon:focus-visible {
+      background: rgba(255, 255, 255, 0.18);
+      outline: none;
+    }
+
+    .main {
+      flex: 1;
+      padding: 10px;
+      min-width: 0;
+    }
+
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 14px;
+    }
+
+    .header h1 {
+      font-size: clamp(22px, 3vw, 28px);
+      font-weight: 800;
+      color: var(--azul);
+      line-height: 1.1;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .header span.id-label {
+      color: #64748b;
+      font-size: clamp(14px, 2vw, 18px);
+      font-weight: 600;
+      background: #e2e8f0;
+      padding: 4px 10px;
+      border-radius: 8px;
+    }
+
+    .header-actions {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .btn {
+      border: none;
+      background: white;
+      padding: 7px 10px;
+      border-radius: 10px;
+      box-shadow: 0 3px 10px rgba(0, 0, 0, 0.05);
+      font-weight: 700;
+      color: var(--azul);
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.2s ease;
+    }
+
+    .btn:hover:not(:disabled) {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+
+    .btn:disabled {
+      opacity: 0.7;
+      cursor: not-allowed;
+    }
+
+    .btn-approval {
+      background: var(--verde);
+      color: white;
+    }
+
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(220px, 1fr));
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+
+    .kpi-card,
+    .card {
+      background: white;
+      border-radius: 10px;
+      padding: 10px;
+      box-shadow: var(--sombra);
+    }
+
+    .kpi-card h3 {
+      min-height: 38px;
+      font-size: 12px;
+      color: #64748b;
+      margin-bottom: 8px;
+      line-height: 1.35;
+    }
+
+    .kpi-value {
+      font-size: clamp(24px, 3vw, 30px);
+      font-weight: 800;
+      line-height: 1.1;
+    }
+
+    .positive {
+      color: #16a34a;
+    }
+
+    .negative {
+      color: #dc2626;
+    }
+
+    .neutral {
+      color: #475569;
+    }
+
+    .green {
+      color: #4ade80;
+    }
+
+    .red {
+      color: #f87171;
+    }
+
+    .kpi-footer {
+      margin-top: 10px;
+      font-size: 12px;
+      color: #64748b;
+      line-height: 1.5;
+    }
+
+    .status-positive {
+      color: #16a34a;
+      font-weight: 700;
+    }
+
+    .status-negative {
+      color: #dc2626;
+      font-weight: 700;
+    }
+
+    .content-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 2fr) minmax(300px, 1fr);
+      gap: 8px;
+      align-items: start;
+    }
+
+    .card-title {
+      font-size: 16px;
+      font-weight: 800;
+      margin-bottom: 16px;
+      color: var(--azul);
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(280px, 1fr));
+      gap: 10px;
+    }
+
+    .section-title {
+      font-size: 14px;
+      font-weight: 800;
+      margin-bottom: 14px;
+      padding-bottom: 6px;
+      border-bottom: 2px solid var(--verde);
+      color: var(--azul);
+    }
+
+    .form-group {
+      margin-bottom: 10px;
+    }
+
+    .form-group label {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 5px;
+      font-size: 12px;
+      color: #475569;
+      font-weight: 700;
+    }
+
+    .info-hint {
+      position: relative;
+      width: 16px;
+      height: 16px;
+      border: 1px solid #94a3b8;
+      border-radius: 50%;
+      background: white;
+      color: var(--azul);
+      font-size: 11px;
+      font-weight: 800;
+      line-height: 14px;
+      text-align: center;
+      cursor: help;
+    }
+
+    .info-hint::after {
+      content: attr(data-tooltip);
+      position: absolute;
+      left: 50%;
+      bottom: calc(100% + 8px);
+      z-index: 20;
+      width: 240px;
+      padding: 9px 10px;
+      border-radius: 8px;
+      background: #0f172a;
+      color: white;
+      font-size: 12px;
+      font-weight: 600;
+      line-height: 1.35;
+      text-align: left;
+      box-shadow: 0 8px 20px rgba(15, 23, 42, 0.22);
+      opacity: 0;
+      pointer-events: none;
+      transform: translate(-50%, 4px);
+      transition: opacity 0.16s ease, transform 0.16s ease;
+    }
+
+    .info-hint:hover::after,
+    .info-hint:focus-visible::after {
+      opacity: 1;
+      transform: translate(-50%, 0);
+    }
+
+    .required-mark {
+      color: #dc2626;
+      font-weight: 800;
+    }
+
+    .form-control {
+      width: 100%;
+      min-height: 40px;
+      padding: 10px 12px;
+      border-radius: 10px;
+      border: 1px solid var(--borda);
+      background: #f8fafc;
+      font-size: 12px;
+      color: var(--texto);
+      outline-color: var(--verde);
+    }
+
+    textarea {
+      resize: vertical;
+      min-height: 70px;
+    }
+
+    .segmented-control {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 6px;
+      padding: 4px;
+      border: 1px solid var(--borda);
+      border-radius: 10px;
+      background: #f8fafc;
+    }
+
+    .segment-btn {
+      min-height: 32px;
+      border: none;
+      border-radius: 8px;
+      background: transparent;
+      color: #475569;
+      font-weight: 800;
+      cursor: pointer;
+    }
+
+    .segment-btn.active {
+      background: var(--verde);
+      color: white;
+      box-shadow: 0 3px 8px rgba(20, 184, 166, 0.24);
+    }
+
+    .summary-card {
+      background: linear-gradient(180deg, var(--azul), var(--azul-escuro));
+      border-radius: 10px;
+      padding: 10px;
+      color: white;
+      box-shadow: var(--sombra);
+    }
+
+    .summary-card h2 {
+      margin-bottom: 20px;
+      font-size: 17px;
+    }
+
+    .summary-item {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 6px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      gap: 12px;
+    }
+
+    .summary-item span {
+      color: #cbd5e1;
+      font-size: 12px;
+      line-height: 1.35;
+    }
+
+    .summary-item strong {
+      font-size: 12px;
+      text-align: right;
+      line-height: 1.35;
+      white-space: nowrap;
+    }
+
+    .summary-total {
+      margin-top: 4px;
+      padding-top: 12px;
+      border-top: 1px solid rgba(255, 255, 255, 0.25);
+    }
+
+    .summary-total strong {
+      font-size: 16px;
+    }
+
+    .manual-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 50;
+      display: none;
+      align-items: stretch;
+      justify-content: flex-end;
+      background: rgba(15, 23, 42, 0.56);
+      padding: 10px;
+    }
+
+    .manual-overlay.open {
+      display: flex;
+    }
+
+    .manual-panel {
+      width: min(760px, 100%);
+      max-height: calc(100vh - 36px);
+      overflow: auto;
+      background: white;
+      border-radius: 10px;
+      box-shadow: 0 18px 48px rgba(15, 23, 42, 0.24);
+    }
+
+    .manual-header {
+      position: sticky;
+      top: 0;
+      z-index: 1;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      padding: 18px 20px;
+      background: var(--azul);
+      color: white;
+    }
+
+    .manual-header h2 {
+      font-size: 17px;
+      line-height: 1.2;
+    }
+
+    .manual-close {
+      width: 36px;
+      height: 36px;
+      border: none;
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.14);
+      color: white;
+      font-size: 22px;
+      cursor: pointer;
+    }
+
+    .manual-content {
+      padding: 20px;
+    }
+
+    .manual-section {
+      padding-bottom: 18px;
+      margin-bottom: 18px;
+      border-bottom: 1px solid #e2e8f0;
+    }
+
+    .manual-section:last-child {
+      border-bottom: none;
+      margin-bottom: 0;
+    }
+
+    .manual-section h3 {
+      margin-bottom: 10px;
+      color: var(--azul);
+      font-size: 16px;
+    }
+
+    .manual-section p,
+    .manual-section li {
+      color: #475569;
+      font-size: 12px;
+      line-height: 1.55;
+    }
+
+    .manual-section ul {
+      display: grid;
+      gap: 7px;
+      padding-left: 18px;
+    }
+
+    .formula-list {
+      display: grid;
+      gap: 8px;
+    }
+
+    .formula-item {
+      padding: 10px 12px;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      background: #f8fafc;
+    }
+
+    .formula-item strong {
+      display: block;
+      margin-bottom: 4px;
+      color: #0f172a;
+      font-size: 12px;
+    }
+
+    .formula-item code {
+      color: #0f766e;
+      font-size: 12px;
+      line-height: 1.5;
+      white-space: normal;
+    }
+
+    .potential-card {
+      display: grid;
+      grid-template-columns: minmax(180px, 1.2fr) repeat(3, minmax(0, 1fr));
+      gap: 12px;
+      align-items: stretch;
+      margin-bottom: 14px;
+      padding: 14px;
+      border-left: 5px solid var(--verde);
+      border-radius: 10px;
+      background: white;
+      box-shadow: var(--sombra);
+    }
+
+    .potential-item {
+      padding: 10px 12px;
+      border-radius: 10px;
+      background: #f8fafc;
+    }
+
+    .potential-item span {
+      display: block;
+      margin-bottom: 6px;
+      color: #64748b;
+      font-size: 12px;
+      font-weight: 700;
+      line-height: 1.35;
+    }
+
+    .potential-item strong {
+      color: var(--azul);
+      font-size: 16px;
+      line-height: 1.2;
+    }
+
+    .antt-panel {
+      width: min(1180px, 100%);
+    }
+
+    .antt-actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 14px;
+    }
+
+    .antt-btn {
+      border: none;
+      border-radius: 10px;
+      padding: 10px 14px;
+      background: var(--azul);
+      color: white;
+      font-weight: 800;
+      cursor: pointer;
+    }
+
+    .antt-btn.secondary {
+      background: #e2e8f0;
+      color: var(--azul);
+    }
+
+    .btn-restaurar {
+      background: transparent;
+      border: none;
+      font-size: 16px;
+      cursor: pointer;
+      padding: 6px;
+      border-radius: 6px;
+      transition: background 0.2s;
+    }
+
+    .btn-restaurar:hover {
+      background: #cbd5e1;
+    }
+
+    .antt-status {
+      margin-bottom: 6px;
+      color: #475569;
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    .antt-table-wrap {
+      overflow: auto;
+      border: 1px solid #cbd5e1;
+      border-radius: 10px;
+    }
+
+    .antt-table {
+      width: 100%;
+      min-width: 1040px;
+      border-collapse: collapse;
+      background: white;
+    }
+
+    .antt-table th,
+    
+
+    
+
+
+    .antt-table {
+      width: 100%;
+      table-layout: auto;
+    }
+
+    .antt-table th {
+      font-size: 12px;
+      padding: 8px 10px;
+      white-space: nowrap;
+    }
+
+    .antt-table td {
+      font-size: 12px;
+      padding: 8px 10px;
+      line-height: 1.35;
+      vertical-align: top;
+      white-space: normal;
+      word-break: break-word;
+      min-width: 90px;
+    }
+
+    
+
+
+    .antt-table {
+      width: max-content;
+      min-width: 100%;
+      border-collapse: collapse;
+      table-layout: auto;
+    }
+
+    .antt-table th,
+    .antt-table td {
+      padding: 6px 10px;
+      font-size: 12px;
+      white-space: nowrap;
+      width: auto;
+      max-width: 240px;
+    }
+
+    .antt-table td {
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .antt-table td.small-col,
+    .antt-table th.small-col {
+      width: 70px;
+      max-width: 70px;
+      text-align: center;
+    }
+
+    .antt-table td.medium-col,
+    .antt-table th.medium-col {
+      width: 130px;
+      max-width: 130px;
+    }
+
+    .antt-table td.large-col,
+    .antt-table th.large-col {
+      width: 220px;
+      max-width: 220px;
+    }
+
+    #fretesTabelaWrapper {
+      overflow-x: auto;
+      overflow-y: auto;
+      width: 100%;
+    }
+    .brand-footer { text-align:center; padding: 16px 10px 24px; color: var(--texto-secundario); font-size: 12px; }
+    .kpi-footer .resultado-linha { display:block; margin-top:6px; }
+    .kpi-footer .resultado-negativo { color: #dc2626; }
+
+  
+    /* Ajuste de altura: evita rolagem vertical em telas desktop usuais */
+    @media (min-width: 1024px) {
+      .main { padding-top: 14px; padding-bottom: 14px; }
+      .header { margin-bottom: 12px; }
+      .header h1 { margin: 0; font-size: 24px; }
+      .kpi-grid { gap: 10px; margin-bottom: 12px; }
+      .kpi-card { padding: 12px; }
+      .kpi-card h3 { margin-bottom: 6px; font-size: 13px; }
+      .kpi-value { font-size: 25px; }
+      .kpi-footer { font-size: 11px; line-height: 1.2; }
+      .kpi-footer .resultado-linha { margin-top: 3px; }
+      .form-section { padding: 12px; }
+      .form-section h2 { margin-bottom: 10px; }
+      .form-grid { gap: 10px; }
+    }
+
+  
+    /* Compactação adicional para eliminar rolagem vertical no desktop */
+    @media (min-width: 1024px) {
+      html, body { height: 100%; overflow: hidden; }
+      .app { min-height: 100vh; }
+      .sidebar { padding-top: 10px; padding-bottom: 10px; }
+      .main { padding: 8px 14px; overflow: hidden; }
+      .header { margin-bottom: 8px; }
+      .header h1 { font-size: 21px; line-height: 1.1; }
+      .header-actions, .header > div:last-child { gap: 6px; }
+      .kpi-grid { gap: 8px; margin-bottom: 8px; }
+      .kpi-card { padding: 9px 10px; border-radius: 8px; }
+      .kpi-card h3 { margin: 0 0 4px; font-size: 12px; line-height: 1.1; }
+      .kpi-value { font-size: 22px; line-height: 1.05; }
+      .kpi-footer { margin-top: 4px; font-size: 10px; line-height: 1.1; }
+      .kpi-footer .resultado-linha { margin-top: 2px; }
+      .content-grid { gap: 10px; }
+      .form-section, .summary-card { padding: 10px; border-radius: 8px; }
+      .form-section h2, .summary-card h2 { margin: 0 0 7px; font-size: 15px; }
+      .form-grid { gap: 7px 10px; }
+      .form-group label { margin-bottom: 3px; font-size: 11px; }
+      .form-control { min-height: 31px; padding: 5px 8px; font-size: 12px; }
+      .summary-item { padding: 4px 0; font-size: 12px; }
+      .actions { margin-top: 8px; gap: 6px; }
+      .btn { padding: 7px 10px; font-size: 12px; }
+    }
+
+  </style>
+</head>
+<body>
+<div class="container" id="printArea">
+<aside class="sidebar">
+<div class="logo">LS</div>
+<button aria-label="Calculadora de frete" class="menu-icon" type="button">🧮</button>
+<button aria-label="Abrir tabela ANTT" class="menu-icon menu-text" id="abrirAntt" type="button">ANTT</button>
+<button aria-label="Abrir fretes enviados" class="menu-icon" id="abrirFretes" title="Fretes enviados" type="button">📤</button>
+<button aria-label="Abrir manual da calculadora" class="menu-icon" id="abrirManual" type="button">📘</button>
+<div style="margin-top:auto;width:100%;padding:8px 4px;color:#fff;background:rgba(255,255,255,.08);border-radius:10px;font-size:9px;line-height:1.35;text-align:center">
+<strong style="display:block;font-size:10px">v18.3</strong>
+<div>20/07/2026</div>
+<div style="margin-top:4px">• Custo peracional R$ 342</div>
+</div>
+</aside>
+<main class="main">
+<div class="header">
+<div>
+<h1>
+<span>CALCULADORA DE FRETE</span>
+<span class="id-label" id="labelIdProposta"></span>
+</h1>
+<input id="idAtual" type="hidden" value=""/>
+</div>
+<div class="header-actions">
+<button class="btn" id="dataHora"></button>
+<button class="btn" onclick="limparCampos()">Limpar</button>
+<button class="btn btn-approval" onclick="enviarParaAprovacao()">Enviar para aprovação</button>
+</div>
+</div>
+<div class="kpi-grid">
+<div class="kpi-card">
+<h3>Margem Bruta</h3>
+<div class="kpi-value neutral" id="margemBruta">0,00%</div>
+<div class="kpi-footer" id="statusMargem">Margem positiva | Resultado: R$ 0,00</div>
+</div>
+<div class="kpi-card">
+<h3>Margem Sem Recuperação</h3>
+<div class="kpi-value neutral" id="margemSemRecuperacao">0,00%</div>
+<div class="kpi-footer" id="statusSemRecuperacao">Resultado operacional</div>
+</div>
+<div class="kpi-card">
+<h3>Margem Recuperação <br/>(Exceto Simples Nacional)</h3>
+<div class="kpi-value neutral" id="margemRecuperacao">0,00%</div>
+<div class="kpi-footer" id="statusRecuperacao">Recuperação Fiscal</div>
+</div>
+<div class="kpi-card">
+<h3>Margem Recuperação <br/>(TransÁgil)</h3>
+<div class="kpi-value neutral" id="margemTransAgil">0,00%</div>
+<div class="kpi-footer" id="statusTransAgil">Informativo</div>
+</div>
+</div>
+<div class="potential-card">
+<div class="potential-item">
+<span>Potencial da oportunidade</span>
+<strong id="potencialViagensResumo">0 viagens</strong>
+</div>
+<div class="potential-item">
+<span>Sem recuperação</span>
+<strong id="potencialSemRecuperacao">R$ 0,00</strong>
+</div>
+<div class="potential-item">
+<span>Exceto Simples Nacional</span>
+<strong id="potencialRecuperacao">R$ 0,00</strong>
+</div>
+<div class="potential-item">
+<span>TransÁgil</span>
+<strong id="potencialTransAgil">R$ 0,00</strong>
+</div>
+</div>
+<div class="content-grid">
+<div class="card">
+<div class="card-title">Dados da Operação</div>
+<div class="form-grid">
+<div>
+<div class="section-title">Embarcador</div>
+<div class="form-group">
+<label>Cliente / Embarcador <span class="required-mark">*</span></label>
+<select class="form-control" id="embarcador" required=""><option>AMBEV</option><option>Americanas</option><option>AmPm</option><option>Arcelor Mittal</option><option>Arcor</option><option>Ardagh</option><option>BAT</option><option>Bayer</option><option>Bimbo</option><option>Boticário</option><option>BRF</option><option>Brinks</option><option>Camil</option><option>Carrefour</option><option>Citrosuco</option><option>FEMSA</option><option>GM</option><option>GPA</option><option>Greco</option><option>JSL</option><option>Kraft</option><option>L'oreal</option><option>Leroy Merlyn</option><option>Manetoni</option><option>Mondelez</option><option>Natura</option><option>Nivea</option><option>Nude</option><option>Pepsico</option><option>Princesa dos Campos</option><option>Razzo</option><option>Santher</option><option>Softys</option><option>Solar</option><option>StellLog</option><option>Suzano</option><option>Tigre</option><option>Uau</option><option>Unilever</option><option>Vibra</option></select>
+</div>
+<div class="form-group">
+<label>Prazo Recebimento <span class="required-mark">*</span></label>
+<input class="form-control" id="prazoRecebimento" required="" type="number"/>
+</div>
+<div class="form-group">
+<label>Valor a Receber <span class="required-mark">*</span></label>
+<input class="form-control" id="valorReceber" required="" type="text"/>
+<small id="validacaoAnttReceber" style="display:block;margin-top:4px;font-size:11px;font-weight:700;color:#64748b;">
+                  Validação ANTT
+                </small>
+</div>
+<div class="form-group">
+<label>Potencial de viagens</label>
+<input class="form-control" id="potencialEmbarcador" min="0" type="number"/>
+</div>
+<div class="form-group">
+<label>Tipo de Produto / Carga</label>
+<select class="form-control" id="tipoCarga">
+<option>Granel sólido</option>
+<option>Granel líquido</option>
+<option>Frigorificada ou Aquecida</option>
+<option>Conteinerizada</option>
+<option>Carga Geral</option>
+<option>Neogranel</option>
+<option>Perigosa (granel sólido)</option>
+<option>Perigosa (granel líquido)</option>
+<option>Perigosa (frigorificada ou aquecida)</option>
+<option>Perigosa (conteinerizada)</option>
+<option>Perigosa (carga geral)</option>
+<option>Carga Granel Pressurizada</option>
+</select>
+</div>
+<div class="form-group">
+<label>Valor da Carga</label>
+<input class="form-control" id="valorCarga" type="text"/>
+</div>
+<div class="form-group">
+<label>
+                  GRIS / Advalorem (%)
+                  <span class="info-hint" data-tooltip="Este valor é o percentual de GRIS + AdValorem que recebemos do nosso embarcador." tabindex="0">i</span>
+</label>
+<input class="form-control" id="gris" inputmode="decimal" placeholder="0,00%" type="text"/>
+</div>
+</div>
+<div>
+<div class="section-title">Operação</div>
+<div class="form-group">
+<label>Origem <span class="required-mark">*</span></label>
+<input class="form-control" id="origem" placeholder="Ex: São Paulo, SP" required="" type="text"/>
+</div>
+<div class="form-group">
+<label>Destino <span class="required-mark">*</span></label>
+<input class="form-control" id="destino" placeholder="Ex: Campinas, SP" required="" type="text"/>
+</div>
+<div class="form-group">
+<label>Distância (KM)</label>
+<div style="display: flex; gap: 8px;">
+<input class="form-control" id="distancia" placeholder="Ex: 100" type="number"/>
+<button class="btn" id="btnCalcularDistancia" style="padding: 0 12px; background: var(--verde); color: white;" title="Calcular distância mais curta" type="button">📍 Automático</button>
+</div>
+<small id="statusDistancia" style="display:block;margin-top:4px;font-size:11px;color:#64748b;min-height:16px;"></small>
+</div>
+<div class="form-group">
+<label>Quantidade de Eixos</label>
+<select class="form-control" id="quantidadeEixos">
+<option value="2">2 Eixos</option>
+<option value="3">3 Eixos</option>
+<option value="4">4 Eixos</option>
+<option value="5">5 Eixos</option>
+<option value="6">6 Eixos</option>
+<option value="7">7 Eixos</option>
+<option value="9">9 Eixos</option>
+</select>
+</div>
+<div class="form-group">
+<label>Pedágio</label>
+<input class="form-control" id="pedagio" type="text"/>
+</div>
+<div class="form-group">
+<label>Custos Extras</label>
+<input class="form-control" id="custosExtras" type="text"/>
+</div>
+<div class="form-group">
+<label>Observações</label>
+<textarea class="form-control" id="observacoes" rows="5"></textarea>
+</div>
+</div>
+<div>
+<div class="section-title">Transportador</div>
+<div class="form-group">
+<label>Parceiro <span class="required-mark">*</span></label>
+<select class="form-control" id="parceiro" required=""><option>AMBEV</option><option>Americanas</option><option>AmPm</option><option>Arcelor Mittal</option><option>Arcor</option><option>Ardagh</option><option>BAT</option><option>Bayer</option><option>Bimbo</option><option>Boticário</option><option>BRF</option><option>Brinks</option><option>Camil</option><option>Carrefour</option><option>Citrosuco</option><option>ETC</option><option>FEMSA</option><option>GM</option><option>GPA</option><option>Greco</option><option>JSL</option><option>Kraft</option><option>L'oreal</option><option>Leroy Merlyn</option><option>Manetoni</option><option>Mondelez</option><option>Natura</option><option>Nivea</option><option>Nude</option><option>Pepsico</option><option>Princesa dos Campos</option><option>Razzo</option><option>Santher</option><option>Softys</option><option>Solar</option><option>StellLog</option><option>Suzano</option><option>TAC</option><option>Tigre</option><option>Uau</option><option>Unilever</option><option>Vibra</option></select>
+</div>
+<div class="form-group">
+<label>Prazo Pagamento <span class="required-mark">*</span></label>
+<input class="form-control" id="prazoPagamento" required="" type="number"/>
+</div>
+<div class="form-group">
+<label>Valor a Pagar <span class="required-mark">*</span></label>
+<input class="form-control" id="valorPagar" required="" type="text"/>
+<small id="validacaoAnttPagar" style="display:block;margin-top:4px;font-size:11px;font-weight:700;color:#64748b;">
+                  Validação ANTT
+                </small>
+</div>
+<div class="form-group">
+<label>Potencial de viagens</label>
+<input class="form-control" id="potencialTransportador" min="0" type="number"/>
+</div>
+<div class="form-group">
+<label>TransAgil Utilizada?</label>
+<input id="transAgil" type="hidden" value="Não"/>
+<div aria-label="TransAgil Utilizada?" class="segmented-control" role="group">
+<button aria-pressed="true" class="segment-btn active" data-transagil="Não" type="button">Não</button>
+<button aria-pressed="false" class="segment-btn" data-transagil="Sim" type="button">Sim</button>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div>
+<div class="summary-card">
+<h2>Resumo Financeiro</h2>
+<div class="summary-item">
+<span>Receita</span>
+<strong class="green" id="receitaResumo">R$ 0,00</strong>
+</div>
+<div class="summary-item">
+<span>Valor a ser pago à Transportadora</span>
+<strong class="red" id="custoResumo">-R$ 0,00</strong>
+</div>
+<div class="summary-item">
+<span>Total de Custos</span>
+<strong class="red" id="custosTotaisResumo">-R$ 0,00</strong>
+</div>
+<div class="summary-item">
+<span>Lucro Bruto</span>
+<strong class="green" id="lucroBruto">R$ 0,00</strong>
+</div>
+<div class="summary-item">
+<span>Valor KM</span>
+<strong id="valorKm">R$ 0,00</strong>
+</div>
+<div class="summary-item">
+<span>Custo IPEF</span>
+<strong class="red" id="custoIpef">-R$ 0,00</strong>
+</div>
+<div class="summary-item">
+<span>Custo Operação</span>
+<strong class="red" id="custoOperacao">-R$ 0,00</strong>
+</div>
+<div class="summary-item">
+<span>Custo Financeiro</span>
+<strong class="red" id="custoFinanceiro">-R$ 0,00</strong>
+</div>
+<div class="summary-item">
+<span>GRIS / AdValorem</span>
+<strong class="red" id="custoGris">-R$ 0,00</strong>
+</div>
+<div class="summary-item">
+<span>Pedágio + Extras</span>
+<strong class="red" id="pedagioExtras">-R$ 0,00</strong>
+</div>
+<div class="summary-item">
+<span>Custo GR</span>
+<strong class="red" id="custoGr">-R$ 150,00</strong>
+</div>
+</div>
+</div>
+</div>
+</main>
+</div>
+<div aria-hidden="true" class="manual-overlay" id="manualOverlay">
+<section aria-labelledby="manualTitulo" aria-modal="true" class="manual-panel" role="dialog">
+<div class="manual-header">
+<div>
+<h2 id="manualTitulo">Manual da Calculadora de Frete</h2>
+</div>
+<button aria-label="Fechar manual" class="manual-close" id="fecharManual" type="button">×</button>
+</div>
+<div class="manual-content">
+<div class="manual-section">
+<h3>Objetivo</h3>
+<p>
+            Esta calculadora estima o resultado financeiro da operação comparando receita,
+            valor pago à transportadora, custos operacionais, recuperação fiscal e custos
+            financeiros. Todos os valores são atualizados automaticamente ao preencher os campos.
+          </p>
+</div>
+<div class="manual-section">
+<h3>Campos principais</h3>
+<ul>
+<li><strong>Valor a Receber:</strong> receita negociada com o embarcador.</li>
+<li><strong>Valor a Pagar:</strong> valor negociado com a transportadora.</li>
+<li><strong>Valor da Carga:</strong> base usada para calcular GRIS / AdValorem.</li>
+<li><strong>GRIS / AdValorem:</strong> percentual informado com quatro casas decimais, como 0,0350%.</li>
+<li><strong>Pedágio e Custos Extras:</strong> somados como custos adicionais da operação.</li>
+<li><strong>Prazo Recebimento e Prazo Pagamento:</strong> usados no cálculo financeiro.</li>
+<li><strong>TransÁgil Utilizada:</strong> informação visual. O indicador TransÁgil segue regra própria de recuperação e desconto.</li>
+</ul>
+</div>
+<div class="manual-section">
+<h3>Constantes usadas</h3>
+<div class="formula-list">
+<div class="formula-item">
+<strong>Recuperação fiscal</strong>
+<code>9,25%</code>
+</div>
+<div class="formula-item">
+<strong>Custo operacional</strong>
+<code>R$ 342,00 por operação</code>
+</div>
+<div class="formula-item">
+<strong>Custo IPEF</strong>
+<code>0,035% sobre o Valor a Pagar</code>
+</div>
+<div class="formula-item">
+<strong>Custo financeiro fixo</strong>
+<code>2,50% ao mês</code>
+</div>
+<div class="formula-item">
+<strong>Custo GR</strong>
+<code>R$ 150,00</code>
+</div>
+</div>
+</div>
+<div class="manual-section">
+<h3>Custos calculados</h3>
+<div class="formula-list">
+<div class="formula-item">
+<strong>Pedágio + Extras</strong>
+<code>Pedágio + Custos Extras</code>
+</div>
+<div class="formula-item">
+<strong>Custo IPEF</strong>
+<code>Valor a Pagar × 0,035%</code>
+</div>
+<div class="formula-item">
+<strong>Custo Operação</strong>
+<code>R$ 342,00</code>
+</div>
+<div class="formula-item">
+<strong>Custo Financeiro</strong>
+<code>((Prazo Recebimento - Prazo Pagamento) / 30) × 2,50% × Valor a Pagar</code>
+</div>
+<div class="formula-item">
+<strong>Ajuste GRIS / AdValorem</strong>
+<code>Valor da Carga × (percentual de GRIS informado - 0,0300%)</code>
+</div>
+</div>
+<p>
+            Quando o prazo de recebimento é menor que o prazo de pagamento, o custo financeiro
+            fica positivo no resumo, representando benefício financeiro.
+            Quando o GRIS informado é maior que 0,0300%, a diferença entra como margem.
+          </p>
+</div>
+<div class="manual-section">
+<h3>Fretes enviados para aprovação</h3>
+<p>
+            Todas as propostas enviadas para aprovação ficam registradas no histórico da calculadora.
+          </p>
+<ul>
+<li><strong>Restauração:</strong> permite reabrir uma proposta já enviada para nova análise.</li>
+<li><strong>Exclusão:</strong> remove individualmente registros do histórico.</li>
+<li><strong>Filtros:</strong> disponíveis por ID, Data, Embarcador, Parceiro, Origem e Destino.</li>
+<li><strong>Exportação Excel:</strong> exporta somente os registros atualmente filtrados na tela.</li>
+<li><strong>ID único:</strong> cada envio gera um identificador exclusivo utilizando sequencial + timestamp.</li>
+</ul>
+</div>
+<div class="manual-section">
+<h3>Cálculo automático de distância</h3>
+<p>
+            O botão <strong>📍 Automático</strong> utiliza a API OpenStreetMap para calcular automaticamente
+            a menor rota disponível entre origem e destino informados.
+          </p>
+<ul>
+<li>Busca automática das coordenadas das cidades.</li>
+<li>Identificação da menor rota disponível.</li>
+<li>Preenchimento automático da distância em KM.</li>
+</ul>
+</div>
+<div class="manual-section">
+<h3>Indicadores</h3>
+<div class="formula-list">
+<div class="formula-item">
+<strong>Margem Bruta</strong>
+<code>(Valor a Receber / Valor a Pagar - 1) × 100</code>
+</div>
+<div class="formula-item">
+<strong>Base sem recuperação</strong>
+<code>Valor a Receber × (100% - 9,25%)</code>
+</div>
+<div class="formula-item">
+<strong>Margem Sem Recuperação</strong>
+<code>Base sem recuperação - Valor a Pagar - Pedágio e Extras - Custo IPEF - Custo Operação - Custo Financeiro - Custo GR - Ajuste GRIS / AdValorem</code>
+</div>
+<div class="formula-item">
+<strong>Margem Recuperação (Exceto Simples Nacional)</strong>
+<code>Valor a Receber + (Valor a Pagar × 9,25%) - Valor a Pagar - (Valor a Receber × 9,25%) - Custo IPEF - Custo Operação - Custo Financeiro - Custo GR - Ajuste GRIS / AdValorem - Pedágio e Extras</code>
+</div>
+<div class="formula-item">
+<strong>Margem Recuperação (TransÁgil)</strong>
+<code>Valor a Receber - (Valor a Pagar + (Valor a Pagar × 9,25%)) - (Valor a Receber × 9,25%) - Custos Totais + ((Valor a Pagar + (Valor a Pagar × 9,25%)) × 9,25%)</code>
+</div>
+</div>
+<div class="manual-section">
+<h3>Cadastro de Parceiros e Embarcadores</h3>
+<p>
+            O sistema possui um menu dedicado para manutenção de cadastros.
+          </p>
+<ul>
+<li><strong>Adicionar:</strong> permite incluir novos parceiros e embarcadores.</li>
+<li><strong>Editar:</strong> permite alterar registros já cadastrados.</li>
+<li><strong>Excluir:</strong> remove registros da lista.</li>
+<li><strong>Atualização automática:</strong> qualquer alteração é refletida automaticamente nas listas suspensas da calculadora.</li>
+</ul>
+</div>
+</div>
+</div></section>
+</div>
+<div aria-hidden="true" class="manual-overlay" id="anttOverlay">
+<section aria-labelledby="anttTitulo" aria-modal="true" class="manual-panel antt-panel" role="dialog">
+<div class="manual-header">
+<div>
+<h2 id="anttTitulo">Tabela ANTT</h2>
+</div>
+<button aria-label="Fechar tabela ANTT" class="manual-close" id="fecharAntt" type="button">×</button>
+</div>
+<div class="manual-content">
+<div class="antt-actions">
+<button class="antt-btn" id="salvarAntt" type="button">Salvar tabela</button>
+<button class="antt-btn secondary" id="importarAntt" type="button">Importar backup</button>
+<button class="antt-btn secondary" id="restaurarAntt" type="button">Restaurar padrão</button>
+<input accept="application/json" hidden="" id="arquivoAntt" type="file"/>
+</div>
+<p class="antt-status" id="statusAntt">
+          Edite os campos necessários e clique em Salvar tabela. O sistema salva no navegador e baixa um arquivo de backup.
+        </p>
+<div class="antt-table-wrap">
+<table aria-label="Tabela ANTT editável" class="antt-table">
+<thead>
+<tr>
+<th>Tipo</th>
+<th>Tipo de carga</th>
+<th>Coeficiente de custo</th>
+<th>Unidade</th>
+<th>2 eixos</th>
+<th>3 eixos</th>
+<th>4 eixos</th>
+<th>5 eixos</th>
+<th>6 eixos</th>
+<th>7 eixos</th>
+<th>9 eixos</th>
+</tr>
+</thead>
+<tbody id="anttTabelaBody"></tbody>
+</table></div>
+</div>
+</section></div>
+
+
+<div aria-hidden="true" class="manual-overlay" id="fretesOverlay">
+<section aria-labelledby="fretesTitulo" aria-modal="true" class="manual-panel sent-panel" role="dialog">
+<div class="manual-header">
+<div>
+<h2 id="fretesTitulo">Fretes enviados para aprovação</h2>
+</div>
+<button aria-label="Fechar fretes enviados" class="manual-close" id="fecharFretes" type="button">×</button>
+</div>
+<div class="manual-content">
+<div class="antt-actions">
+<button class="antt-btn" id="exportarExcel" style="background: #16a34a;" type="button">Exportar Excel</button>
+</div>
+<p class="antt-status" id="statusFretes">
+          Cada aprovação enviada gera uma linha com os dados preenchidos na tela.
+        </p>
+<div style="display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px;margin-bottom:14px;">
+<input class="form-control" id="filtroId" placeholder="Filtrar ID" type="text"/>
+<input class="form-control" id="filtroData" type="date"/>
+<input class="form-control" id="filtroEmbarcador" placeholder="Filtrar Embarcador" type="text"/>
+<input class="form-control" id="filtroTransportador" placeholder="Filtrar Parceiro" type="text"/>
+<input class="form-control" id="filtroOrigem" placeholder="Filtrar Origem" type="text"/>
+<input class="form-control" id="filtroDestino" placeholder="Filtrar Destino" type="text"/>
+</div>
+<div class="antt-table-wrap">
+<table aria-label="Fretes enviados para aprovação" class="antt-table">
+<thead>
+<tr>
+<th style="width: 50px;">Ações</th>
+<th class="medium-col">ID</th>
+<th>Data/Hora</th>
+<th>Arquivo</th>
+<th>Embarcador</th>
+<th>Parceiro</th>
+<th class="large-col">Origem</th>
+<th class="large-col">Destino</th>
+<th>Receber</th>
+<th>Pagar</th>
+<th>Potencial</th>
+<th>Pot. Embarcador</th>
+<th>Pot. Transportador</th>
+<th>Prazo Rec.</th>
+<th>Prazo Pag.</th>
+<th>Carga</th>
+<th>GRIS</th>
+<th>Distância</th>
+<th>Pedágio</th>
+<th>Extras</th>
+<th>Tipo Carga</th>
+<th>Eixos</th>
+<th>TransÁgil</th>
+<th>Margem Bruta</th>
+<th>Sem Rec.</th>
+<th>Rec. Fiscal</th>
+<th>TransÁgil Resultado</th>
+<th class="large-col">Observações</th>
+</tr>
+</thead>
+<tbody id="fretesTabelaBody"></tbody>
+</table>
+</div>
+</div>
+</section>
+</div>
+<script>
+    const camposSalvar = [
+      'embarcador',
+      'prazoRecebimento',
+      'valorReceber',
+      'potencialEmbarcador',
+      'valorCarga',
+      'gris',
+      'origem',
+      'destino',
+      'distancia',
+      'pedagio',
+      'custosExtras',
+      'observacoes',
+      'parceiro',
+      'prazoPagamento',
+      'valorPagar',
+      'potencialTransportador',
+      'tipoCarga',
+      'quantidadeEixos',
+      'transAgil',
+      'idAtual'
+    ];
+
+    const CAMPOS_MOEDA = [
+      'valorReceber',
+      'valorPagar',
+      'valorCarga',
+      'pedagio',
+      'custosExtras'
+    ];
+
+    const CUSTO_GR = 150;
+    const ALIQUOTA_RECUPERACAO = 0.0925;
+    const ALIQUOTA_TRANSAGIL = 0.08;
+    const CUSTO_OPERACAO_FIXO = 342;
+    const ALIQUOTA_IPEF = 0.00035;
+    const TAXA_FINANCEIRA_MENSAL = 0.025;
+    const TAXA_DESCONTO_TRANSAGIL = 0.015;
+    const GRIS_BASE = 0.0003;
+    const ANTT_STORAGE_KEY = 'anttTabelaEditavel';
+    const FRETES_STORAGE_KEY = 'fretesEnviadosAprovacao';
+    const ID_SEQUENCIAL_KEY = 'logshareIdSequencial';
+    let ultimoCalculo = {};
+    const ANTT_EIXOS = ['2', '3', '4', '5', '6', '7', '9'];
+    const ANTT_PADRAO = [
+  {
+    "tipo": "1",
+    "carga": "Granel sólido",
+    "coeficiente": "CCD",
+    "unidade": "R$/km",
+    "valores": [
+      "4,0144",
+      "5,1355",
+      "5,8118",
+      "6,6983",
+      "7,3841",
+      "8,0516",
+      "9,2231"
+    ]
+  },
+  {
+    "tipo": "2",
+    "carga": "Granel sólido",
+    "coeficiente": "CC",
+    "unidade": "R$",
+    "valores": [
+      "460,59",
+      "552,24",
+      "597",
+      "664,83",
+      "680,01",
+      "820,34",
+      "908,91"
+    ]
+  },
+  {
+    "tipo": "3",
+    "carga": "Granel líquido",
+    "coeficiente": "CCD",
+    "unidade": "R$/km",
+    "valores": [
+      "4,0884",
+      "5,2311",
+      "5,9661",
+      "6,8661",
+      "7,5572",
+      "8,19",
+      "9,3822"
+    ]
+  },
+  {
+    "tipo": "4",
+    "carga": "Granel líquido",
+    "coeficiente": "CC",
+    "unidade": "R$",
+    "valores": [
+      "471,98",
+      "569,57",
+      "621,52",
+      "693,08",
+      "709,72",
+      "840,5",
+      "934,76"
+    ]
+  },
+  {
+    "tipo": "5",
+    "carga": "Frigorificada ou Aquecida",
+    "coeficiente": "CCD",
+    "unidade": "R$/km",
+    "valores": [
+      "4,7095",
+      "6,0159",
+      "6,8646",
+      "7,8666",
+      "8,6661",
+      "9,5884",
+      "10,887"
+    ]
+  },
+  {
+    "tipo": "6",
+    "carga": "Frigorificada ou Aquecida",
+    "coeficiente": "CC",
+    "unidade": "R$",
+    "valores": [
+      "520,07",
+      "623,27",
+      "686,63",
+      "757,98",
+      "772,35",
+      "982,76",
+      "1067,06"
+    ]
+  },
+  {
+    "tipo": "7",
+    "carga": "Conteinerizada",
+    "coeficiente": "CCD",
+    "unidade": "R$/km",
+    "valores": [
+      "",
+      "5,1082",
+      "5,7396",
+      "6,6345",
+      "7,3186",
+      "8,0492",
+      "9,1399"
+    ]
+  },
+  {
+    "tipo": "8",
+    "carga": "Conteinerizada",
+    "coeficiente": "CC",
+    "unidade": "R$",
+    "valores": [
+      "",
+      "544,75",
+      "577,15",
+      "647,29",
+      "662,01",
+      "819,69",
+      "886,05"
+    ]
+  },
+  {
+    "tipo": "9",
+    "carga": "Carga Geral",
+    "coeficiente": "CCD",
+    "unidade": "R$/km",
+    "valores": [
+      "3,9826",
+      "5,0977",
+      "5,7822",
+      "6,6718",
+      "7,3547",
+      "8,0927",
+      "9,2027"
+    ]
+  },
+  {
+    "tipo": "10",
+    "carga": "Carga Geral",
+    "coeficiente": "CC",
+    "unidade": "R$",
+    "valores": [
+      "451,84",
+      "541,86",
+      "588,86",
+      "657,56",
+      "671,93",
+      "831,66",
+      "903,32"
+    ]
+  },
+  {
+    "tipo": "11",
+    "carga": "Neogranel",
+    "coeficiente": "CCD",
+    "unidade": "R$/km",
+    "valores": [
+      "3,6023",
+      "5,0962",
+      "5,8094",
+      "6,6718",
+      "7,3547",
+      "8,0927",
+      "9,2027"
+    ]
+  },
+  {
+    "tipo": "12",
+    "carga": "Neogranel",
+    "coeficiente": "CC",
+    "unidade": "R$",
+    "valores": [
+      "451,84",
+      "541,44",
+      "596,35",
+      "657,56",
+      "671,93",
+      "831,66",
+      "903,32"
+    ]
+  },
+  {
+    "tipo": "13",
+    "carga": "Perigosa (granel sólido)",
+    "coeficiente": "CCD",
+    "unidade": "R$/km",
+    "valores": [
+      "4,7845",
+      "5,9154",
+      "6,6285",
+      "7,515",
+      "8,2008",
+      "8,8866",
+      "10,066"
+    ]
+  },
+  {
+    "tipo": "14",
+    "carga": "Perigosa (granel sólido)",
+    "coeficiente": "CC",
+    "unidade": "R$",
+    "valores": [
+      "608,79",
+      "703,16",
+      "753,03",
+      "820,86",
+      "836,04",
+      "981,39",
+      "1072,15"
+    ]
+  },
+  {
+    "tipo": "15",
+    "carga": "Perigosa (granel líquido)",
+    "coeficiente": "CCD",
+    "unidade": "R$/km",
+    "valores": [
+      "4,871",
+      "6,0236",
+      "6,7628",
+      "7,6628",
+      "8,3539",
+      "9,0049",
+      "10,2051"
+    ]
+  },
+  {
+    "tipo": "16",
+    "carga": "Perigosa (granel líquido)",
+    "coeficiente": "CC",
+    "unidade": "R$",
+    "valores": [
+      "632,58",
+      "732,9",
+      "789,96",
+      "861,51",
+      "878,16",
+      "1013,95",
+      "1110,41"
+    ]
+  },
+  {
+    "tipo": "17",
+    "carga": "Perigosa (frigorificada ou aquecida)",
+    "coeficiente": "CCD",
+    "unidade": "R$/km",
+    "valores": [
+      "5,3176",
+      "6,6369",
+      "7,502",
+      "8,5039",
+      "9,3034",
+      "10,2495",
+      "11,5584"
+    ]
+  },
+  {
+    "tipo": "18",
+    "carga": "Perigosa (frigorificada ou aquecida)",
+    "coeficiente": "CC",
+    "unidade": "R$",
+    "valores": [
+      "630,88",
+      "737,63",
+      "807,63",
+      "878,98",
+      "893,35",
+      "1110,28",
+      "1197,43"
+    ]
+  },
+  {
+    "tipo": "19",
+    "carga": "Perigosa (conteinerizada)",
+    "coeficiente": "CCD",
+    "unidade": "R$/km",
+    "valores": [
+      "",
+      "5,4926",
+      "6,1608",
+      "7,0556",
+      "7,7398",
+      "8,4886",
+      "9,5873"
+    ]
+  },
+  {
+    "tipo": "20",
+    "carga": "Perigosa (conteinerizada)",
+    "coeficiente": "CC",
+    "unidade": "R$",
+    "valores": [
+      "",
+      "645,45",
+      "682,95",
+      "753,1",
+      "767,81",
+      "930,51",
+      "999,06"
+    ]
+  },
+  {
+    "tipo": "21",
+    "carga": "Perigosa (carga geral)",
+    "coeficiente": "CCD",
+    "unidade": "R$/km",
+    "valores": [
+      "4,3571",
+      "5,4821",
+      "6,2033",
+      "7,093",
+      "7,7758",
+      "8,5321",
+      "9,6501"
+    ]
+  },
+  {
+    "tipo": "22",
+    "carga": "Perigosa (carga geral)",
+    "coeficiente": "CC",
+    "unidade": "R$",
+    "valores": [
+      "549,81",
+      "642,55",
+      "694,66",
+      "763,36",
+      "777,73",
+      "942,48",
+      "1016,33"
+    ]
+  },
+  {
+    "tipo": "23",
+    "carga": "Carga Granel Pressurizada",
+    "coeficiente": "CCD",
+    "unidade": "R$/km",
+    "valores": [
+      "",
+      "",
+      "",
+      "7,0364",
+      "7,7652",
+      "",
+      "9,7444"
+    ]
+  },
+  {
+    "tipo": "24",
+    "carga": "Carga Granel Pressurizada",
+    "coeficiente": "CC",
+    "unidade": "R$",
+    "valores": [
+      "",
+      "",
+      "",
+      "757,81",
+      "784,82",
+      "",
+      "1052,26"
+    ]
+  },
+  {
+    "tipo": "25",
+    "carga": "Granel sólido",
+    "coeficiente": "CCD",
+    "unidade": "R$/km",
+    "valores": [
+      "",
+      "",
+      "5,218",
+      "5,9334",
+      "6,6063",
+      "7,0381",
+      "7,8292"
+    ]
+  },
+  {
+    "tipo": "26",
+    "carga": "Granel sólido",
+    "coeficiente": "CC",
+    "unidade": "R$",
+    "valores": [
+      "",
+      "",
+      "533,4",
+      "594,62",
+      "608,99",
+      "720,31",
+      "773,22"
+    ]
+  },
+  {
+    "tipo": "27",
+    "carga": "Granel líquido",
+    "coeficiente": "CCD",
+    "unidade": "R$/km",
+    "valores": [
+      "",
+      "",
+      "5,2831",
+      "5,9986",
+      "6,6714",
+      "7,1032",
+      "7,8943"
+    ]
+  },
+  {
+    "tipo": "28",
+    "carga": "Granel líquido",
+    "coeficiente": "CC",
+    "unidade": "R$",
+    "valores": [
+      "",
+      "",
+      "533,4",
+      "594,62",
+      "608,99",
+      "720,31",
+      "773,22"
+    ]
+  },
+  {
+    "tipo": "29",
+    "carga": "Frigorificada ou Aquecida",
+    "coeficiente": "CCD",
+    "unidade": "R$/km",
+    "valores": [
+      "",
+      "",
+      "6,129",
+      "6,9472",
+      "7,7367",
+      "8,1867",
+      "9,1284"
+    ]
+  },
+  {
+    "tipo": "30",
+    "carga": "Frigorificada ou Aquecida",
+    "coeficiente": "CC",
+    "unidade": "R$",
+    "valores": [
+      "",
+      "",
+      "584,04",
+      "645,26",
+      "659,62",
+      "775,96",
+      "831,06"
+    ]
+  },
+  {
+    "tipo": "31",
+    "carga": "Conteinerizada",
+    "coeficiente": "CCD",
+    "unidade": "R$/km",
+    "valores": [
+      "",
+      "",
+      "5,218",
+      "5,9334",
+      "6,6063",
+      "7,0381",
+      "7,8292"
+    ]
+  },
+  {
+    "tipo": "32",
+    "carga": "Conteinerizada",
+    "coeficiente": "CC",
+    "unidade": "R$",
+    "valores": [
+      "",
+      "",
+      "533,4",
+      "594,62",
+      "608,99",
+      "720,31",
+      "773,22"
+    ]
+  },
+  {
+    "tipo": "33",
+    "carga": "Carga Geral",
+    "coeficiente": "CCD",
+    "unidade": "R$/km",
+    "valores": [
+      "",
+      "",
+      "5,218",
+      "5,9334",
+      "6,6063",
+      "7,0381",
+      "7,8292"
+    ]
+  },
+  {
+    "tipo": "34",
+    "carga": "Carga Geral",
+    "coeficiente": "CC",
+    "unidade": "R$",
+    "valores": [
+      "",
+      "",
+      "533,4",
+      "594,62",
+      "608,99",
+      "720,31",
+      "773,22"
+    ]
+  },
+  {
+    "tipo": "35",
+    "carga": "Neogranel",
+    "coeficiente": "CCD",
+    "unidade": "R$/km",
+    "valores": [
+      "",
+      "",
+      "5,218",
+      "5,9334",
+      "6,6063",
+      "7,0381",
+      "7,8292"
+    ]
+  },
+  {
+    "tipo": "36",
+    "carga": "Neogranel",
+    "coeficiente": "CC",
+    "unidade": "R$",
+    "valores": [
+      "",
+      "",
+      "533,4",
+      "594,62",
+      "608,99",
+      "720,31",
+      "773,22"
+    ]
+  },
+  {
+    "tipo": "37",
+    "carga": "Perigosa (granel sólido)",
+    "coeficiente": "CCD",
+    "unidade": "R$/km",
+    "valores": [
+      "",
+      "",
+      "6,0347",
+      "6,7502",
+      "7,423",
+      "7,873",
+      "8,6721"
+    ]
+  },
+  {
+    "tipo": "38",
+    "carga": "Perigosa (granel sólido)",
+    "coeficiente": "CC",
+    "unidade": "R$",
+    "valores": [
+      "",
+      "",
+      "689,44",
+      "750,65",
+      "765,02",
+      "881,36",
+      "936,46"
+    ]
+  },
+  {
+    "tipo": "39",
+    "carga": "Perigosa (granel líquido)",
+    "coeficiente": "CCD",
+    "unidade": "R$/km",
+    "valores": [
+      "",
+      "",
+      "6,0798",
+      "6,7953",
+      "7,4681",
+      "7,9181",
+      "8,7172"
+    ]
+  },
+  {
+    "tipo": "40",
+    "carga": "Perigosa (granel líquido)",
+    "coeficiente": "CC",
+    "unidade": "R$",
+    "valores": [
+      "",
+      "",
+      "701,84",
+      "763,06",
+      "777,43",
+      "893,76",
+      "948,87"
+    ]
+  },
+  {
+    "tipo": "41",
+    "carga": "Perigosa (frigorificada ou aquecida)",
+    "coeficiente": "CCD",
+    "unidade": "R$/km",
+    "valores": [
+      "",
+      "",
+      "6,7663",
+      "7,5845",
+      "8,374",
+      "8,8477",
+      "9,7997"
+    ]
+  },
+  {
+    "tipo": "42",
+    "carga": "Perigosa (frigorificada ou aquecida)",
+    "coeficiente": "CC",
+    "unidade": "R$",
+    "valores": [
+      "",
+      "",
+      "705,04",
+      "766,25",
+      "780,62",
+      "903,48",
+      "961,43"
+    ]
+  },
+  {
+    "tipo": "43",
+    "carga": "Perigosa (conteinerizada)",
+    "coeficiente": "CCD",
+    "unidade": "R$/km",
+    "valores": [
+      "",
+      "",
+      "5,6391",
+      "6,3546",
+      "7,0274",
+      "7,4774",
+      "8,2766"
+    ]
+  },
+  {
+    "tipo": "44",
+    "carga": "Perigosa (conteinerizada)",
+    "coeficiente": "CC",
+    "unidade": "R$",
+    "valores": [
+      "",
+      "",
+      "639,21",
+      "700,42",
+      "714,79",
+      "831,13",
+      "886,23"
+    ]
+  },
+  {
+    "tipo": "45",
+    "carga": "Perigosa (carga geral)",
+    "coeficiente": "CCD",
+    "unidade": "R$/km",
+    "valores": [
+      "",
+      "",
+      "5,6391",
+      "6,3546",
+      "7,0274",
+      "7,4774",
+      "8,2766"
+    ]
+  },
+  {
+    "tipo": "46",
+    "carga": "Perigosa (carga geral)",
+    "coeficiente": "CC",
+    "unidade": "R$",
+    "valores": [
+      "",
+      "",
+      "639,21",
+      "700,42",
+      "714,79",
+      "831,13",
+      "886,23"
+    ]
+  },
+  {
+    "tipo": "47",
+    "carga": "Carga Granel Pressurizada",
+    "coeficiente": "CCD",
+    "unidade": "R$/km",
+    "valores": [
+      "",
+      "",
+      "",
+      "5,9334",
+      "6,6063",
+      "",
+      "7,8292"
+    ]
+  },
+  {
+    "tipo": "48",
+    "carga": "Carga Granel Pressurizada",
+    "coeficiente": "CC",
+    "unidade": "R$",
+    "valores": [
+      "",
+      "",
+      "",
+      "594,62",
+      "608,99",
+      "",
+      "773,22"
+    ]
+  },
+  {
+    "tipo": "49",
+    "carga": "Granel sólido",
+    "coeficiente": "CCD",
+    "unidade": "R$/km",
+    "valores": [
+      "3,3964",
+      "4,3276",
+      "4,9441",
+      "5,6725",
+      "6,3229",
+      "6,7071",
+      "7,6912"
+    ]
+  },
+  {
+    "tipo": "50",
+    "carga": "Granel sólido",
+    "coeficiente": "CC",
+    "unidade": "R$",
+    "valores": [
+      "174,38",
+      "198,05",
+      "215,03",
+      "229,64",
+      "232,91",
+      "270,36",
+      "292,59"
+    ]
+  },
+  {
+    "tipo": "51",
+    "carga": "Granel líquido",
+    "coeficiente": "CCD",
+    "unidade": "R$/km",
+    "valores": [
+      "3,4439",
+      "4,3828",
+      "5,0412",
+      "5,7745",
+      "6,4268",
+      "6,7985",
+      "7,7901"
+    ]
+  },
+  {
+    "tipo": "52",
+    "carga": "Granel líquido",
+    "coeficiente": "CC",
+    "unidade": "R$",
+    "valores": [
+      "176,84",
+      "201,78",
+      "220,31",
+      "235,73",
+      "239,32",
+      "274,7",
+      "298,16"
+    ]
+  },
+  {
+    "tipo": "53",
+    "carga": "Frigorificada ou Aquecida",
+    "coeficiente": "CCD",
+    "unidade": "R$/km",
+    "valores": [
+      "4,0647",
+      "5,1615",
+      "5,9203",
+      "6,756",
+      "7,522",
+      "8,0108",
+      "9,1377"
+    ]
+  },
+  {
+    "tipo": "54",
+    "carga": "Frigorificada ou Aquecida",
+    "coeficiente": "CC",
+    "unidade": "R$",
+    "valores": [
+      "205,65",
+      "232,97",
+      "256,16",
+      "271,54",
+      "274,63",
+      "329,34",
+      "351,6"
+    ]
+  },
+  {
+    "tipo": "55",
+    "carga": "Conteinerizada",
+    "coeficiente": "CCD",
+    "unidade": "R$/km",
+    "valores": [
+      "",
+      "4,3178",
+      "4,9182",
+      "5,6496",
+      "6,2994",
+      "6,7062",
+      "7,6614"
+    ]
+  },
+  {
+    "tipo": "56",
+    "carga": "Conteinerizada",
+    "coeficiente": "CC",
+    "unidade": "R$",
+    "valores": [
+      "",
+      "196,43",
+      "210,75",
+      "225,87",
+      "229,04",
+      "270,22",
+      "287,67"
+    ]
+  },
+  {
+    "tipo": "57",
+    "carga": "Carga Geral",
+    "coeficiente": "CCD",
+    "unidade": "R$/km",
+    "valores": [
+      "3,385",
+      "4,3141",
+      "4,9335",
+      "5,663",
+      "6,3124",
+      "6,7218",
+      "7,6839"
+    ]
+  },
+  {
+    "tipo": "58",
+    "carga": "Carga Geral",
+    "coeficiente": "CC",
+    "unidade": "R$",
+    "valores": [
+      "172,5",
+      "195,81",
+      "213,27",
+      "228,08",
+      "231,17",
+      "272,8",
+      "291,39"
+    ]
+  },
+  {
+    "tipo": "59",
+    "carga": "Neogranel",
+    "coeficiente": "CCD",
+    "unidade": "R$/km",
+    "valores": [
+      "3,0047",
+      "4,3135",
+      "4,9432",
+      "5,663",
+      "6,3124",
+      "6,7218",
+      "7,6839"
+    ]
+  },
+  {
+    "tipo": "60",
+    "carga": "Neogranel",
+    "coeficiente": "CC",
+    "unidade": "R$",
+    "valores": [
+      "172,5",
+      "195,72",
+      "214,89",
+      "228,08",
+      "231,17",
+      "272,8",
+      "291,39"
+    ]
+  },
+  {
+    "tipo": "61",
+    "carga": "Perigosa (granel sólido)",
+    "coeficiente": "CCD",
+    "unidade": "R$/km",
+    "valores": [
+      "3,9329",
+      "4,8748",
+      "5,5294",
+      "6,2578",
+      "6,9083",
+      "7,3121",
+      "8,3048"
+    ]
+  },
+  {
+    "tipo": "62",
+    "carga": "Perigosa (granel sólido)",
+    "coeficiente": "CC",
+    "unidade": "R$",
+    "valores": [
+      "224,77",
+      "250,19",
+      "270,47",
+      "285,09",
+      "288,36",
+      "329,05",
+      "352,7"
+    ]
+  },
+  {
+    "tipo": "63",
+    "carga": "Perigosa (granel líquido)",
+    "coeficiente": "CCD",
+    "unidade": "R$/km",
+    "valores": [
+      "3,964",
+      "4,9136",
+      "5,5777",
+      "6,3109",
+      "6,9633",
+      "7,3546",
+      "8,3548"
+    ]
+  },
+  {
+    "tipo": "64",
+    "carga": "Perigosa (granel líquido)",
+    "coeficiente": "CC",
+    "unidade": "R$",
+    "valores": [
+      "229,89",
+      "256,6",
+      "278,43",
+      "293,85",
+      "297,43",
+      "336,06",
+      "360,94"
+    ]
+  },
+  {
+    "tipo": "65",
+    "carga": "Perigosa (frigorificada ou aquecida)",
+    "coeficiente": "CCD",
+    "unidade": "R$/km",
+    "valores": [
+      "4,5599",
+      "5,6705",
+      "6,4476",
+      "7,2833",
+      "8,0493",
+      "8,5636",
+      "9,7016"
+    ]
+  },
+  {
+    "tipo": "66",
+    "carga": "Perigosa (frigorificada ou aquecida)",
+    "coeficiente": "CC",
+    "unidade": "R$",
+    "valores": [
+      "253,51",
+      "283,12",
+      "310,6",
+      "325,98",
+      "329,07",
+      "388",
+      "412,1"
+    ]
+  },
+  {
+    "tipo": "67",
+    "carga": "Perigosa (conteinerizada)",
+    "coeficiente": "CCD",
+    "unidade": "R$/km",
+    "valores": [
+      "",
+      "4,5865",
+      "5,225",
+      "5,9564",
+      "6,6062",
+      "7,0327",
+      "7,9965"
+    ]
+  },
+  {
+    "tipo": "68",
+    "carga": "Perigosa (conteinerizada)",
+    "coeficiente": "CC",
+    "unidade": "R$",
+    "valores": [
+      "",
+      "237,75",
+      "255,37",
+      "270,49",
+      "273,66",
+      "318,08",
+      "336,95"
+    ]
+  },
+  {
+    "tipo": "69",
+    "carga": "Perigosa (carga geral)",
+    "coeficiente": "CCD",
+    "unidade": "R$/km",
+    "valores": [
+      "3,643",
+      "4,5827",
+      "5,2403",
+      "5,9698",
+      "6,6192",
+      "7,0483",
+      "8,019"
+    ]
+  },
+  {
+    "tipo": "70",
+    "carga": "Perigosa (carga geral)",
+    "coeficiente": "CC",
+    "unidade": "R$",
+    "valores": [
+      "212,06",
+      "237,13",
+      "257,89",
+      "272,7",
+      "275,79",
+      "320,66",
+      "340,67"
+    ]
+  },
+  {
+    "tipo": "71",
+    "carga": "Carga Granel Pressurizada",
+    "coeficiente": "CCD",
+    "unidade": "R$/km",
+    "valores": [
+      "",
+      "",
+      "",
+      "5,7939",
+      "6,4598",
+      "",
+      "7,8784"
+    ]
+  },
+  {
+    "tipo": "72",
+    "carga": "Carga Granel Pressurizada",
+    "coeficiente": "CC",
+    "unidade": "R$",
+    "valores": [
+      "",
+      "",
+      "",
+      "249,68",
+      "255,5",
+      "",
+      "323,48"
+    ]
+  },
+  {
+    "tipo": "73",
+    "carga": "Granel sólido",
+    "coeficiente": "CCD",
+    "unidade": "R$/km",
+    "valores": [
+      "",
+      "",
+      "4,4985",
+      "5,0713",
+      "5,7107",
+      "5,9267",
+      "6,6136"
+    ]
+  },
+  {
+    "tipo": "74",
+    "carga": "Granel sólido",
+    "coeficiente": "CC",
+    "unidade": "R$",
+    "valores": [
+      "",
+      "",
+      "201,32",
+      "214,52",
+      "217,61",
+      "248,8",
+      "263,35"
+    ]
+  },
+  {
+    "tipo": "75",
+    "carga": "Granel líquido",
+    "coeficiente": "CCD",
+    "unidade": "R$/km",
+    "valores": [
+      "",
+      "",
+      "4,5636",
+      "5,1364",
+      "5,7758",
+      "5,9918",
+      "6,6787"
+    ]
+  },
+  {
+    "tipo": "76",
+    "carga": "Granel líquido",
+    "coeficiente": "CC",
+    "unidade": "R$",
+    "valores": [
+      "",
+      "",
+      "201,32",
+      "214,52",
+      "217,61",
+      "248,8",
+      "263,35"
+    ]
+  },
+  {
+    "tipo": "77",
+    "carga": "Frigorificada ou Aquecida",
+    "coeficiente": "CCD",
+    "unidade": "R$/km",
+    "valores": [
+      "",
+      "",
+      "5,4237",
+      "6,0993",
+      "6,8553",
+      "7,091",
+      "7,929"
+    ]
+  },
+  {
+    "tipo": "78",
+    "carga": "Frigorificada ou Aquecida",
+    "coeficiente": "CC",
+    "unidade": "R$",
+    "valores": [
+      "",
+      "",
+      "234,06",
+      "247,25",
+      "250,34",
+      "284,78",
+      "300,75"
+    ]
+  },
+  {
+    "tipo": "79",
+    "carga": "Conteinerizada",
+    "coeficiente": "CCD",
+    "unidade": "R$/km",
+    "valores": [
+      "",
+      "",
+      "4,4985",
+      "5,0713",
+      "5,7107",
+      "5,9267",
+      "6,6136"
+    ]
+  },
+  {
+    "tipo": "80",
+    "carga": "Conteinerizada",
+    "coeficiente": "CC",
+    "unidade": "R$",
+    "valores": [
+      "",
+      "",
+      "201,32",
+      "214,52",
+      "217,61",
+      "248,8",
+      "263,35"
+    ]
+  },
+  {
+    "tipo": "81",
+    "carga": "Carga Geral",
+    "coeficiente": "CCD",
+    "unidade": "R$/km",
+    "valores": [
+      "",
+      "",
+      "4,4985",
+      "5,0713",
+      "5,7107",
+      "5,9267",
+      "6,6136"
+    ]
+  },
+  {
+    "tipo": "82",
+    "carga": "Carga Geral",
+    "coeficiente": "CC",
+    "unidade": "R$",
+    "valores": [
+      "",
+      "",
+      "201,32",
+      "214,52",
+      "217,61",
+      "248,8",
+      "263,35"
+    ]
+  },
+  {
+    "tipo": "83",
+    "carga": "Neogranel",
+    "coeficiente": "CCD",
+    "unidade": "R$/km",
+    "valores": [
+      "",
+      "",
+      "4,4985",
+      "5,0713",
+      "5,7107",
+      "5,9267",
+      "6,6136"
+    ]
+  },
+  {
+    "tipo": "84",
+    "carga": "Neogranel",
+    "coeficiente": "CC",
+    "unidade": "R$",
+    "valores": [
+      "",
+      "",
+      "201,32",
+      "214,52",
+      "217,61",
+      "248,8",
+      "263,35"
+    ]
+  },
+  {
+    "tipo": "85",
+    "carga": "Perigosa (granel sólido)",
+    "coeficiente": "CCD",
+    "unidade": "R$/km",
+    "valores": [
+      "",
+      "",
+      "5,0838",
+      "5,6566",
+      "6,296",
+      "6,5317",
+      "7,2272"
+    ]
+  },
+  {
+    "tipo": "86",
+    "carga": "Perigosa (granel sólido)",
+    "coeficiente": "CC",
+    "unidade": "R$",
+    "valores": [
+      "",
+      "",
+      "256,77",
+      "269,96",
+      "273,05",
+      "307,49",
+      "323,46"
+    ]
+  },
+  {
+    "tipo": "87",
+    "carga": "Perigosa (granel líquido)",
+    "coeficiente": "CCD",
+    "unidade": "R$/km",
+    "valores": [
+      "",
+      "",
+      "5,1",
+      "5,6728",
+      "6,3122",
+      "6,5479",
+      "7,2434"
+    ]
+  },
+  {
+    "tipo": "88",
+    "carga": "Perigosa (granel líquido)",
+    "coeficiente": "CC",
+    "unidade": "R$",
+    "valores": [
+      "",
+      "",
+      "259,44",
+      "272,63",
+      "275,73",
+      "310,16",
+      "326,13"
+    ]
+  },
+  {
+    "tipo": "89",
+    "carga": "Perigosa (frigorificada ou aquecida)",
+    "coeficiente": "CCD",
+    "unidade": "R$/km",
+    "valores": [
+      "",
+      "",
+      "5,951",
+      "6,6265",
+      "7,3826",
+      "7,6438",
+      "8,493"
+    ]
+  },
+  {
+    "tipo": "90",
+    "carga": "Perigosa (frigorificada ou aquecida)",
+    "coeficiente": "CC",
+    "unidade": "R$",
+    "valores": [
+      "",
+      "",
+      "288,5",
+      "301,69",
+      "304,78",
+      "343,44",
+      "361,25"
+    ]
+  },
+  {
+    "tipo": "91",
+    "carga": "Perigosa (conteinerizada)",
+    "coeficiente": "CCD",
+    "unidade": "R$/km",
+    "valores": [
+      "",
+      "",
+      "4,8053",
+      "5,3781",
+      "6,0175",
+      "6,2532",
+      "6,9487"
+    ]
+  },
+  {
+    "tipo": "92",
+    "carga": "Perigosa (conteinerizada)",
+    "coeficiente": "CC",
+    "unidade": "R$",
+    "valores": [
+      "",
+      "",
+      "245,95",
+      "259,14",
+      "262,23",
+      "296,67",
+      "312,64"
+    ]
+  },
+  {
+    "tipo": "93",
+    "carga": "Perigosa (carga geral)",
+    "coeficiente": "CCD",
+    "unidade": "R$/km",
+    "valores": [
+      "",
+      "",
+      "4,8053",
+      "5,3781",
+      "6,0175",
+      "6,2532",
+      "6,9487"
+    ]
+  },
+  {
+    "tipo": "94",
+    "carga": "Perigosa (carga geral)",
+    "coeficiente": "CC",
+    "unidade": "R$",
+    "valores": [
+      "",
+      "",
+      "245,95",
+      "259,14",
+      "262,23",
+      "296,67",
+      "312,64"
+    ]
+  },
+  {
+    "tipo": "95",
+    "carga": "Carga Granel Pressurizada",
+    "coeficiente": "CCD",
+    "unidade": "R$/km",
+    "valores": [
+      "",
+      "",
+      "",
+      "5,0713",
+      "5,7107",
+      "",
+      "6,6136"
+    ]
+  },
+  {
+    "tipo": "96",
+    "carga": "Carga Granel Pressurizada",
+    "coeficiente": "CC",
+    "unidade": "R$",
+    "valores": [
+      "",
+      "",
+      "",
+      "214,52",
+      "217,61",
+      "",
+      "263,35"
+    ]
+  }
+];
+
+    function moeda(valor) {
+      return valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+    }
+
+    function percentual(valor) {
+      return valor.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + '%';
+    }
+
+    function moedaCusto(valor) {
+      const valorAbsoluto = Math.abs(valor);
+      if (valorAbsoluto === 0) return '-R$ 0,00';
+      return '-' + moeda(valorAbsoluto);
+    }
+
+    function moedaFinanceiro(valor) {
+      if (valor < 0) return moeda(Math.abs(valor));
+      return moedaCusto(valor);
+    }
+
+    function moedaGris(valor) {
+      if (valor < 0) return moeda(Math.abs(valor));
+      return '-' + moeda(valor);
+    }
+
+    function formatarMoeda(input) {
+      let valor = input.value.replace(/\D/g, '');
+      valor = (valor / 100).toFixed(2) + '';
+      valor = valor.replace('.', ',');
+      valor = valor.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+      input.value = 'R$ ' + valor;
+    }
+
+    function formatarPercentual(input) {
+      let valor = input.value.replace(/\D/g, '');
+      valor = (valor / 10000).toFixed(4) + '';
+      valor = valor.replace('.', ',');
+      input.value = valor + '%';
+    }
+
+    function obterValor(id) {
+      const campo = document.getElementById(id);
+      if (!campo) return 0;
+      const valor = campo.value.replace(/\./g, '').replace(',', '.').replace(/[^\d.-]/g, '');
+      return parseFloat(valor) || 0;
+    }
+
+    function obterNumero(id) {
+      return parseFloat(document.getElementById(id).value) || 0;
+    }
+
+    function obterPercentual(id) {
+      const campo = document.getElementById(id);
+      if (!campo) return 0;
+      const valor = campo.value.replace('%', '').replace(/\./g, '').replace(',', '.').replace(/[^\d.-]/g, '');
+      return (parseFloat(valor) || 0) / 100;
+    }
+
+    function atualizarValor(id, valor, classeBase) {
+      const elemento = document.getElementById(id);
+      elemento.innerHTML = valor;
+      if (classeBase) elemento.className = classeBase;
+    }
+
+    function calcularMargem(resultado, receita) {
+      if (receita <= 0) return 0;
+      return (resultado / receita) * 100;
+    }
+
+    function salvarDados() {
+      
+document.getElementById('tipoCarga').addEventListener('change', function() {
+  calcular();
+  salvarDados();
+});
+
+document.getElementById('quantidadeEixos').addEventListener('change', function() {
+  calcular();
+  salvarDados();
+});
+
+camposSalvar.forEach(function(id) {
+
+        localStorage.setItem(id, document.getElementById(id).value);
+      });
+    }
+
+    function carregarDados() {
+      
+document.getElementById('tipoCarga').addEventListener('change', function() {
+  calcular();
+  salvarDados();
+});
+
+document.getElementById('quantidadeEixos').addEventListener('change', function() {
+  calcular();
+  salvarDados();
+});
+
+camposSalvar.forEach(function(id) {
+
+        const valor = localStorage.getItem(id);
+        if (valor !== null) {
+          document.getElementById(id).value = valor;
+        }
+      });
+      
+      const idSalvo = document.getElementById('idAtual').value;
+      if (idSalvo) {
+        document.getElementById('labelIdProposta').innerText = '#' + idSalvo;
+      } else {
+        document.getElementById('labelIdProposta').innerText = '';
+      }
+
+      selecionarTransAgil(document.getElementById('transAgil').value || 'Não');
+      calcular();
+    }
+
+    function selecionarTransAgil(valor) {
+      const valorSelecionado = valor === 'Sim' ? 'Sim' : 'Não';
+      document.getElementById('transAgil').value = valorSelecionado;
+      document.querySelectorAll('[data-transagil]').forEach(function(botao) {
+        const ativo = botao.dataset.transagil === valorSelecionado;
+        botao.classList.toggle('active', ativo);
+        botao.setAttribute('aria-pressed', ativo ? 'true' : 'false');
+      });
+    }
+
+    
+    function calcularValorMinimoAntt(tipoCarga, eixos, distancia) {
+      const tabela = obterTabelaAntt();
+
+      const linhaCCD = tabela.find(l =>
+        l.carga === tipoCarga &&
+        l.coeficiente === 'CCD'
+      );
+
+      const linhaCC = tabela.find(l =>
+        l.carga === tipoCarga &&
+        l.coeficiente === 'CC'
+      );
+
+      if (!linhaCCD || !linhaCC) return null;
+
+      const eixoIndex = ANTT_EIXOS.indexOf(String(eixos));
+
+      if (eixoIndex === -1) return null;
+
+      const valorCCD = parseFloat(
+        String(linhaCCD.valores[eixoIndex] || '0')
+          .replace(/\./g, '')
+          .replace(',', '.')
+      ) || 0;
+
+      const valorCC = parseFloat(
+        String(linhaCC.valores[eixoIndex] || '0')
+          .replace(/\./g, '')
+          .replace(',', '.')
+      ) || 0;
+
+      return (valorCCD * distancia) + valorCC;
+    }
+
+
+function calcular() {
+      const valorReceber = obterValor('valorReceber');
+      const valorPagar = obterValor('valorPagar');
+      const valorCarga = obterValor('valorCarga');
+      const pedagio = obterValor('pedagio');
+      const custosExtras = obterValor('custosExtras');
+      const distancia = obterNumero('distancia');
+      const percentualGris = obterPercentual('gris');
+      const prazoRecebimento = obterNumero('prazoRecebimento');
+      const prazoPagamento = obterNumero('prazoPagamento');
+      const potencialEmbarcador = obterNumero('potencialEmbarcador');
+      const potencialTransportador = obterNumero('potencialTransportador');
+      const potencialViagens = potencialEmbarcador > 0 && potencialTransportador > 0
+        ? Math.min(potencialEmbarcador, potencialTransportador) : 0;
+
+      const custoIpef = valorPagar * ALIQUOTA_IPEF;
+      const custoOperacao = CUSTO_OPERACAO_FIXO;
+      const diasFinanciados = prazoRecebimento - prazoPagamento;
+      const custoFinanceiro = (diasFinanciados / 30) * TAXA_FINANCEIRA_MENSAL * valorPagar;
+      const ajusteGris = valorCarga * (percentualGris - GRIS_BASE);
+      const custoGris = -ajusteGris;
+      const custoPedagioExtras = pedagio + custosExtras;
+      const custoTransportador = valorPagar + custoPedagioExtras;
+      const transAgilUtilizada = document.getElementById('transAgil').value === 'Sim';
+      const valorExibidoTransportadora = transAgilUtilizada
+        ? valorPagar + (valorPagar * ALIQUOTA_RECUPERACAO)
+        : valorPagar;
+      const custoOperacionalTotal = custoTransportador + custoIpef + custoOperacao + custoFinanceiro + custoGris + CUSTO_GR;
+      const baseSemRecuperacao = valorReceber * (1 - ALIQUOTA_RECUPERACAO);
+
+      const resultadoBruto = valorReceber - custoTransportador;
+      const resultadoMargemBruta = valorReceber - valorPagar;
+      const resultadoSemRecuperacao = baseSemRecuperacao - custoOperacionalTotal;
+      const recuperacaoFiscal = valorPagar * ALIQUOTA_RECUPERACAO;
+      const pisCofinsSobreReceita = valorReceber * ALIQUOTA_RECUPERACAO;
+      const resultadoComRecuperacao =
+        valorReceber + recuperacaoFiscal - valorPagar - pisCofinsSobreReceita
+        - custoIpef - custoOperacao - custoFinanceiro - custoGris
+        - custoPedagioExtras - CUSTO_GR;
+      const custoPisCofinsPagamento = valorPagar * ALIQUOTA_RECUPERACAO;
+      const valorPagarComPisCofins = valorPagar + custoPisCofinsPagamento;
+      const pisCofinsSobreReceitaTransAgil = valorReceber * ALIQUOTA_RECUPERACAO;
+      const recuperacaoTransAgil = valorPagarComPisCofins * ALIQUOTA_RECUPERACAO;
+      const custosTotaisTransAgil =
+        custoIpef + custoOperacao + custoFinanceiro + custoGris +
+        custoPedagioExtras + CUSTO_GR;
+      const resultadoTransAgil =
+        valorReceber
+        - valorPagarComPisCofins
+        - pisCofinsSobreReceitaTransAgil
+        - custosTotaisTransAgil
+        + recuperacaoTransAgil;
+      
+      const resultadoSemRecuperacaoPotencial = resultadoSemRecuperacao * potencialViagens;
+      const resultadoComRecuperacaoPotencial = resultadoComRecuperacao * potencialViagens;
+      const resultadoTransAgilPotencial = resultadoTransAgil * potencialViagens;
+
+      const margemBruta = valorPagar > 0 ? ((valorReceber / valorPagar) - 1) * 100 : 0;
+      const margemSemRecuperacao = calcularMargem(resultadoSemRecuperacao, baseSemRecuperacao);
+      const margemRecuperacao = calcularMargem(resultadoComRecuperacao, valorReceber);
+      const margemTransAgil = calcularMargem(resultadoTransAgil, valorReceber);
+      const valorKm = distancia > 0 ? custoTransportador / distancia : 0;
+
+      const tipoCarga = document.getElementById('tipoCarga').value;
+      const quantidadeEixos = document.getElementById('quantidadeEixos').value;
+
+      const valorMinimoAntt = calcularValorMinimoAntt(tipoCarga, quantidadeEixos, distancia);
+
+      if (valorMinimoAntt !== null && distancia > 0) {
+        const diferenca = valorPagar - valorMinimoAntt;
+        const elementoReceber = document.getElementById('validacaoAnttReceber');
+        const elementoPagar = document.getElementById('validacaoAnttPagar');
+
+        const textoAntt =
+          'ANTT mínima: ' + moeda(valorMinimoAntt);
+
+        if (valorReceber >= valorMinimoAntt) {
+          elementoReceber.innerHTML = '✔ Receber acima ANTT | ' + textoAntt;
+          elementoReceber.style.color = '#16a34a';
+        } else {
+          elementoReceber.innerHTML = '⚠ Receber abaixo ANTT | ' + textoAntt;
+          elementoReceber.style.color = '#dc2626';
+        }
+
+        if (valorPagar >= valorMinimoAntt) {
+          elementoPagar.innerHTML = '✔ Pagar acima ANTT | ' + textoAntt;
+          elementoPagar.style.color = '#16a34a';
+        } else {
+          elementoPagar.innerHTML = '⚠ Pagar abaixo ANTT | ' + textoAntt;
+          elementoPagar.style.color = '#dc2626';
+        }
+      }
+
+
+      const classeBruta = resultadoMargemBruta >= 0 ? 'positive' : 'negative';
+      const classeSemRecuperacao = resultadoSemRecuperacao >= 0 ? 'positive' : 'negative';
+      const classeRecuperacao = resultadoComRecuperacao >= 0 ? 'positive' : 'negative';
+      const classeTransAgil = resultadoTransAgil >= 0 ? 'positive' : 'negative';
+
+      atualizarValor('margemBruta', percentual(margemBruta), 'kpi-value ' + classeBruta);
+      atualizarValor('margemSemRecuperacao', percentual(margemSemRecuperacao), 'kpi-value ' + classeSemRecuperacao);
+      atualizarValor('margemRecuperacao', percentual(margemRecuperacao), 'kpi-value ' + classeRecuperacao);
+      atualizarValor('margemTransAgil', percentual(margemTransAgil), 'kpi-value ' + classeTransAgil);
+
+      document.getElementById('statusMargem').innerHTML =
+        (resultadoMargemBruta >= 0 ? '<span class="status-positive">Margem positiva</span>' : '<span class="status-negative">Margem negativa</span>')
+        + '<span class="resultado-linha">Resultado: <strong class="' + (resultadoMargemBruta < 0 ? 'resultado-negativo' : '') + '">' + moeda(resultadoMargemBruta) + '</strong></span>';
+
+      document.getElementById('statusSemRecuperacao').innerHTML =
+        'Recuperação fiscal: <strong>' + moeda(0) + '</strong>'
+        + '<span class="resultado-linha">Resultado: <strong class="' + (resultadoSemRecuperacao < 0 ? 'resultado-negativo' : '') + '">' + moeda(resultadoSemRecuperacao) + '</strong></span>';
+
+      document.getElementById('statusRecuperacao').innerHTML =
+        'Recuperação fiscal: <strong>' + moeda(recuperacaoFiscal) + '</strong>'
+        + '<span class="resultado-linha">Resultado: <strong class="' + (resultadoComRecuperacao < 0 ? 'resultado-negativo' : '') + '">' + moeda(resultadoComRecuperacao) + '</strong></span>';
+
+      document.getElementById('statusTransAgil').innerHTML =
+        'Recuperação TransÁgil: <strong>' + moeda(recuperacaoTransAgil) + '</strong>'
+        + '<span class="resultado-linha">Resultado: <strong class="' + (resultadoTransAgil < 0 ? 'resultado-negativo' : '') + '">' + moeda(resultadoTransAgil) + '</strong></span>';
+
+      document.getElementById('potencialViagensResumo').innerHTML =
+        potencialViagens.toLocaleString('pt-BR') + (potencialViagens === 1 ? ' viagem' : ' viagens');
+      atualizarValor('potencialSemRecuperacao', moeda(resultadoSemRecuperacaoPotencial), resultadoSemRecuperacaoPotencial >= 0 ? 'green' : 'red');
+      atualizarValor('potencialRecuperacao', moeda(resultadoComRecuperacaoPotencial), resultadoComRecuperacaoPotencial >= 0 ? 'green' : 'red');
+      atualizarValor('potencialTransAgil', moeda(resultadoTransAgilPotencial), resultadoTransAgilPotencial >= 0 ? 'green' : 'red');
+
+      atualizarValor('receitaResumo', moeda(valorReceber), valorReceber >= 0 ? 'green' : 'red');
+      atualizarValor('custoResumo', moedaCusto(valorExibidoTransportadora), 'red');
+      const custosTotaisResumo = custoIpef + custoOperacao + custoFinanceiro + custoGris + custoPedagioExtras + CUSTO_GR;
+      atualizarValor('custosTotaisResumo', moedaCusto(custosTotaisResumo), custosTotaisResumo > 0 ? 'red' : 'green');
+      atualizarValor('lucroBruto', moeda(resultadoBruto), resultadoBruto >= 0 ? 'green' : 'red');
+      atualizarValor('valorKm', moeda(valorKm));
+      atualizarValor('custoIpef', moedaCusto(custoIpef), 'red');
+      atualizarValor('custoOperacao', moedaCusto(custoOperacao), 'red');
+      atualizarValor('custoFinanceiro', moedaFinanceiro(custoFinanceiro), custoFinanceiro < 0 ? 'green' : 'red');
+      atualizarValor('custoGris', moedaGris(custoGris), custoGris < 0 ? 'green' : 'red');
+      atualizarValor('pedagioExtras', moedaCusto(custoPedagioExtras), 'red');
+      atualizarValor('custoGr', moedaCusto(CUSTO_GR), 'red');
+
+      ultimoCalculo = {
+        potencialViagens, margemBruta, margemSemRecuperacao, margemRecuperacao, margemTransAgil,
+        resultadoMargemBruta, resultadoSemRecuperacao, resultadoComRecuperacao, resultadoTransAgil
+      };
+    }
+
+    // --- CÁLCULO AUTOMÁTICO DE DISTÂNCIA ATUALIZADO ---
+    document.getElementById('btnCalcularDistancia').addEventListener('click', async function() {
+      const origem = document.getElementById('origem').value;
+      
+      const destino = document.getElementById('destino').value;
+      const status = document.getElementById('statusDistancia');
+
+      
+
+      if (!origem || !destino) {
+        
+        return;
+      }
+
+      
+      this.disabled = true;
+
+      try {
+        status.innerHTML = 'Buscando rota mais curta... ⏳';
+
+        const getCoords = async (cidade) => {
+          // Adiciona 'Brasil' explicitamente na busca para evitar que o satélite pegue cidades homônimas em outros países
+          const busca = encodeURIComponent(cidade + ', Brasil');
+          const res = await fetch('https://nominatim.openstreetmap.org/search?format=json&limit=1&q=' + busca);
+          const data = await res.json();
+          if (data && data.length > 0) return { lat: data[0].lat, lon: data[0].lon };
+          throw new Error('Local não encontrado: ' + cidade);
+        };
+
+        const coordOrigem = await getCoords(origem);
+        const coordDestino = await getCoords(destino);
+
+        // O parâmetro alternatives=true manda o roteador procurar vários caminhos em vez de apenas o "Mais Rápido"
+        const rotaRes = await fetch('https://router.project-osrm.org/route/v1/driving/' + coordOrigem.lon + ',' + coordOrigem.lat + ';' + coordDestino.lon + ',' + coordDestino.lat + '?alternatives=true&overview=false');
+        const rotaData = await rotaRes.json();
+
+        if (rotaData.routes && rotaData.routes.length > 0) {
+          // Varre todas as alternativas traçadas e seleciona a de menor quilometragem absoluta
+          let menorDistancia = rotaData.routes[0].distance;
+          rotaData.routes.forEach(rota => {
+            if (rota.distance < menorDistancia) {
+              menorDistancia = rota.distance;
+            }
+          });
+
+          
+          const distKm = (menorDistancia / 1000).toFixed(0);
+          status.innerHTML = '✔ Distância: ' + distKm + ' km (Rota mais curta)';
+
+          document.getElementById('distancia').value = distKm;
+          
+          calcular();
+          salvarDados();
+        } else {
+          throw new Error('Não foi possível traçar rota.');
+        }
+      
+      } catch (erro) {
+        status.innerHTML = 'Erro ao calcular distância';
+
+        
+      } finally {
+        this.disabled = false;
+      }
+    });
+
+    function limparCampos() {
+      
+document.getElementById('tipoCarga').addEventListener('change', function() {
+  calcular();
+  salvarDados();
+});
+
+document.getElementById('quantidadeEixos').addEventListener('change', function() {
+  calcular();
+  salvarDados();
+});
+
+camposSalvar.forEach(function(id) {
+
+        document.getElementById(id).value = '';
+        localStorage.removeItem(id);
+      });
+      document.getElementById('idAtual').value = '';
+      document.getElementById('labelIdProposta').innerText = '';
+      document.getElementById('statusDistancia').innerHTML = '';
+      selecionarTransAgil('Não');
+      calcular();
+    }
+
+    function validarCamposObrigatorios() {
+      const camposObrigatorios = document.querySelectorAll('input[required], select[required]');
+      let valido = true;
+      let primeiroInvalido = null;
+
+      camposObrigatorios.forEach(campo => {
+        campo.classList.remove('erro-validacao');
+        if (!campo.value || campo.value.trim() === '') {
+          valido = false;
+          campo.classList.add('erro-validacao');
+          if (!primeiroInvalido) primeiroInvalido = campo;
+        }
+      });
+
+      if (!valido) {
+        alert("Atenção: Por favor, preencha todos os campos obrigatórios (*) antes de enviar para aprovação.");
+        primeiroInvalido.focus();
+      }
+      return valido;
+    }
+
+    async function enviarParaAprovacao() {
+      if (!validarCamposObrigatorios()) return;
+
+      const agora = new Date();
+      const timestamp = agora.getTime();
+      
+      let ultimoId = parseInt(localStorage.getItem(ID_SEQUENCIAL_KEY)) || 1000;
+      ultimoId++;
+      
+      const idAtual = ultimoId + '-' + timestamp;
+      
+      localStorage.setItem(ID_SEQUENCIAL_KEY, ultimoId);
+      document.getElementById('idAtual').value = idAtual;
+      document.getElementById('labelIdProposta').innerText = '#' + idAtual;
+
+      const area = document.getElementById('printArea');
+      const canvas = await html2canvas(area, { scale: 2, backgroundColor: '#f4f7fb' });
+      const link = document.createElement('a');
+
+      const dataFormatada = agora.toISOString().slice(0, 19).replace(/[:T]/g, '-');
+      const nomeArquivo = 'Aprovacao_LogShare_' + idAtual + '_' + dataFormatada + '.png';
+
+      link.href = canvas.toDataURL('image/png');
+      link.download = nomeArquivo;
+      link.click();
+
+      registrarFreteEnviado(nomeArquivo, idAtual);
+    }
+
+    function abrirManual() {
+      document.getElementById('manualOverlay').classList.add('open');
+    }
+    function fecharManual() {
+      document.getElementById('manualOverlay').classList.remove('open');
+    }
+    function abrirAntt() {
+      document.getElementById('anttOverlay').classList.add('open');
+    }
+    function fecharAntt() {
+      document.getElementById('anttOverlay').classList.remove('open');
+    }
+    function abrirFretes() {
+      renderizarFretesEnviados();
+      document.getElementById('fretesOverlay').classList.add('open');
+    }
+    function fecharFretes() {
+      document.getElementById('fretesOverlay').classList.remove('open');
+    }
+
+    function obterFretesEnviados() {
+      try {
+        const fretes = JSON.parse(localStorage.getItem(FRETES_STORAGE_KEY));
+        return Array.isArray(fretes) ? fretes : [];
+      } catch (e) {
+        return [];
+      }
+    }
+
+    function valorCampo(id) {
+      return document.getElementById(id).value || '';
+    }
+
+    function textoSeguro(valor) {
+      return String(valor ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
+
+    function registrarFreteEnviado(nomeArquivo, idAprovacao) {
+      calcular();
+      const fretes = obterFretesEnviados();
+      
+      const novaAprovacao = {
+        id: idAprovacao,
+        dataHora: new Date().toLocaleString('pt-BR'),
+        arquivo: nomeArquivo,
+        embarcador: valorCampo('embarcador'),
+        parceiro: valorCampo('parceiro'),
+        origem: valorCampo('origem'),
+        destino: valorCampo('destino'),
+        valorReceber: valorCampo('valorReceber'),
+        valorPagar: valorCampo('valorPagar'),
+        potencialViagens: ultimoCalculo.potencialViagens || 0,
+        potencialEmbarcador: valorCampo('potencialEmbarcador'),
+        potencialTransportador: valorCampo('potencialTransportador'),
+        prazoRecebimento: valorCampo('prazoRecebimento'),
+        prazoPagamento: valorCampo('prazoPagamento'),
+        valorCarga: valorCampo('valorCarga'),
+        gris: valorCampo('gris'),
+        distancia: valorCampo('distancia'),
+        pedagio: valorCampo('pedagio'),
+        custosExtras: valorCampo('custosExtras'),
+        tipoCarga: valorCampo('tipoCarga'),
+        quantidadeEixos: valorCampo('quantidadeEixos'),
+        statusAntt: document.getElementById('validacaoAnttPagar')?.innerText || '',
+        transAgil: valorCampo('transAgil'),
+        observacoes: valorCampo('observacoes'),
+        margemBruta: percentual(ultimoCalculo.margemBruta || 0),
+        resultadoSemRecuperacao: moeda(ultimoCalculo.resultadoSemRecuperacao || 0),
+        resultadoRecuperacao: moeda(ultimoCalculo.resultadoComRecuperacao || 0),
+        resultadoTransAgil: moeda(ultimoCalculo.resultadoTransAgil || 0)
+      };
+
+      fretes.unshift(novaAprovacao);
+      localStorage.setItem(FRETES_STORAGE_KEY, JSON.stringify(fretes));
+      salvarDados(); 
+      renderizarFretesEnviados();
+    }
+
+    
+window.deletarFrete = function(indice) {
+  const fretes = obterFretesEnviados();
+
+  if (!confirm('Deseja realmente excluir este registro?')) return;
+
+  fretes.splice(indice, 1);
+  localStorage.setItem(FRETES_STORAGE_KEY, JSON.stringify(fretes));
+  renderizarFretesEnviados();
+};
+
+window.restaurarFrete = function(indice) {
+
+      const fretes = obterFretesEnviados();
+      const frete = fretes[indice];
+      if (!frete) return;
+
+      document.getElementById('idAtual').value = frete.id || '';
+      document.getElementById('labelIdProposta').innerText = frete.id ? '#' + frete.id : '(Nova)';
+      document.getElementById('embarcador').value = frete.embarcador || '';
+      document.getElementById('parceiro').value = frete.parceiro || '';
+      document.getElementById('origem').value = frete.origem || '';
+      document.getElementById('destino').value = frete.destino || '';
+      document.getElementById('valorReceber').value = frete.valorReceber || '';
+      document.getElementById('valorPagar').value = frete.valorPagar || '';
+      document.getElementById('potencialEmbarcador').value = frete.potencialEmbarcador || '';
+      document.getElementById('potencialTransportador').value = frete.potencialTransportador || '';
+      document.getElementById('prazoRecebimento').value = frete.prazoRecebimento || '';
+      document.getElementById('prazoPagamento').value = frete.prazoPagamento || '';
+      document.getElementById('valorCarga').value = frete.valorCarga || '';
+      document.getElementById('gris').value = frete.gris || '';
+      document.getElementById('distancia').value = frete.distancia || '';
+      document.getElementById('tipoCarga').value = frete.tipoCarga || 'Carga Geral';
+      document.getElementById('quantidadeEixos').value = frete.quantidadeEixos || '2';
+      document.getElementById('pedagio').value = frete.pedagio || '';
+      document.getElementById('custosExtras').value = frete.custosExtras || '';
+      document.getElementById('observacoes').value = frete.observacoes || '';
+
+      selecionarTransAgil(frete.transAgil || 'Não');
+
+      calcular();
+      calcular();
+      salvarDados();
+      fecharFretes(); 
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+
+    function renderizarFretesEnviados() {
+      const tbody = document.getElementById('fretesTabelaBody');
+      let fretes = obterFretesEnviados();
+      tbody.innerHTML = '';
+
+      const filtroId = (document.getElementById('filtroId')?.value || '').toLowerCase();
+      const filtroData = document.getElementById('filtroData')?.value || '';
+      const filtroEmbarcador = (document.getElementById('filtroEmbarcador')?.value || '').toLowerCase();
+      const filtroTransportador = (document.getElementById('filtroTransportador')?.value || '').toLowerCase();
+      const filtroOrigem = (document.getElementById('filtroOrigem')?.value || '').toLowerCase();
+      const filtroDestino = (document.getElementById('filtroDestino')?.value || '').toLowerCase();
+
+      fretes = fretes.filter(function(frete) {
+        let dataFrete = '';
+        if (frete.dataHora) {
+          const somenteData = frete.dataHora.split(',')[0].trim();
+          const partes = somenteData.split('/');
+          if (partes.length === 3) {
+            dataFrete = partes[2] + '-' + partes[1].padStart(2, '0') + '-' + partes[0].padStart(2, '0');
+          }
+        }
+
+        return (!filtroId || String(frete.id).toLowerCase().includes(filtroId)) &&
+               (!filtroData || dataFrete === filtroData) &&
+               (!filtroEmbarcador || (frete.embarcador || '').toLowerCase().includes(filtroEmbarcador)) &&
+               (!filtroTransportador || (frete.parceiro || '').toLowerCase().includes(filtroTransportador)) &&
+               (!filtroOrigem || (frete.origem || '').toLowerCase().includes(filtroOrigem)) &&
+               (!filtroDestino || (frete.destino || '').toLowerCase().includes(filtroDestino));
+      });
+
+      if (fretes.length === 0) {
+        document.getElementById('statusFretes').innerHTML = 'Nenhum frete encontrado.';
+        return;
+      }
+
+      document.getElementById('statusFretes').innerHTML = fretes.length + ' fretes encontrados.';
+
+      fretes.forEach(function(frete, index) {
+        const tr = document.createElement('tr');
+        const campo = textoSeguro;
+        tr.innerHTML =
+          '<td class="small-col" style="display:flex;gap:4px;justify-content:center;">' +
+          '<button type="button" class="btn-restaurar" onclick="restaurarFrete(' + index + ')" title="Restaurar proposta">🔄</button>' +
+          '<button type="button" class="btn-restaurar" onclick="deletarFrete(' + index + ')" title="Excluir registro" style="color:#dc2626;">🗑️</button>' +
+          '</td>' +
+          '<td><strong>#' + campo(frete.id || '-') + '</strong></td>' +
+          '<td>' + campo(frete.dataHora) + '</td>' +
+          '<td>' + campo(frete.arquivo) + '</td>' +
+          '<td>' + campo(frete.embarcador) + '</td>' +
+          '<td>' + campo(frete.parceiro) + '</td>' +
+          '<td>' + campo(frete.origem) + '</td>' +
+          '<td>' + campo(frete.destino) + '</td>' +
+          '<td style="max-width:180px;white-space:normal;line-height:1.2;">' +
+            '<div>' + campo(frete.valorReceber) + '</div>' +
+            '<small style="display:block;font-size:10px;color:#64748b;margin-top:2px;">' + campo(frete.statusAntt || '') + '</small>' +
+          '</td>' +
+          '<td style="max-width:180px;white-space:normal;line-height:1.2;">' +
+            '<div>' + campo(frete.valorPagar) + '</div>' +
+            '<small style="display:block;font-size:10px;color:#64748b;margin-top:2px;">' + campo(frete.statusAntt || '') + '</small>' +
+          '</td>' +
+          '<td>' + campo(frete.potencialViagens) + '</td>' +
+          '<td>' + campo(frete.potencialEmbarcador) + '</td>' +
+          '<td>' + campo(frete.potencialTransportador) + '</td>' +
+          '<td>' + campo(frete.prazoRecebimento) + '</td>' +
+          '<td>' + campo(frete.prazoPagamento) + '</td>' +
+          '<td>' + campo(frete.valorCarga) + '</td>' +
+          '<td>' + campo(frete.gris) + '</td>' +
+          '<td>' + campo(frete.distancia) + '</td>' +
+          '<td>' + campo(frete.pedagio) + '</td>' +
+          '<td>' + campo(frete.custosExtras) + '</td>' +
+          '<td>' + campo(frete.tipoCarga || '') + '</td>' +
+          '<td>' + campo(frete.quantidadeEixos || '') + '</td>' +
+          '<td>' + campo(frete.transAgil) + '</td>' +
+          '<td>' + campo(frete.margemBruta) + '</td>' +
+          '<td>' + campo(frete.resultadoSemRecuperacao) + '</td>' +
+          '<td>' + campo(frete.resultadoRecuperacao) + '</td>' +
+          '<td>' + campo(frete.resultadoTransAgil) + '</td>' +
+          '<td>' + campo(frete.observacoes) + '</td>';
+        tbody.appendChild(tr);
+      });
+    }
+
+    
+
+    document.getElementById('exportarExcel').addEventListener('click', function() {
+      let fretes = obterFretesEnviados();
+
+      const filtroId = (document.getElementById('filtroId')?.value || '').toLowerCase();
+      const filtroData = document.getElementById('filtroData')?.value || '';
+      const filtroEmbarcador = (document.getElementById('filtroEmbarcador')?.value || '').toLowerCase();
+      const filtroTransportador = (document.getElementById('filtroTransportador')?.value || '').toLowerCase();
+      const filtroOrigem = (document.getElementById('filtroOrigem')?.value || '').toLowerCase();
+      const filtroDestino = (document.getElementById('filtroDestino')?.value || '').toLowerCase();
+
+      fretes = fretes.filter(function(frete) {
+
+        let dataFrete = '';
+        if (frete.dataHora) {
+          const somenteData = frete.dataHora.split(',')[0].trim();
+          const partes = somenteData.split('/');
+          if (partes.length === 3) {
+            dataFrete = partes[2] + '-' + partes[1].padStart(2, '0') + '-' + partes[0].padStart(2, '0');
+          }
+        }
+
+        return (!filtroId || String(frete.id).toLowerCase().includes(filtroId)) &&
+               (!filtroData || dataFrete === filtroData) &&
+               (!filtroEmbarcador || (frete.embarcador || '').toLowerCase().includes(filtroEmbarcador)) &&
+               (!filtroTransportador || (frete.parceiro || '').toLowerCase().includes(filtroTransportador)) &&
+               (!filtroOrigem || (frete.origem || '').toLowerCase().includes(filtroOrigem)) &&
+               (!filtroDestino || (frete.destino || '').toLowerCase().includes(filtroDestino));
+      });
+
+      if (fretes.length === 0) {
+        alert('Nenhum registro filtrado para exportar.');
+        return;
+      }
+      const dados = fretes.map(function(f) {
+        return {
+          'ID Proposta': f.id || '-',
+          'Data/Hora': f.dataHora,
+          'Arquivo': f.arquivo,
+          'Embarcador': f.embarcador,
+          'Parceiro': f.parceiro,
+          'Origem': f.origem,
+          'Destino': f.destino,
+          'Receber': f.valorReceber,
+          'Pagar': f.valorPagar,
+          'Potencial Viagens': f.potencialViagens,
+          'Pot. Embarcador': f.potencialEmbarcador,
+          'Pot. Transportador': f.potencialTransportador,
+          'Prazo Rec.': f.prazoRecebimento,
+          'Prazo Pag.': f.prazoPagamento,
+          'Carga': f.valorCarga,
+          'GRIS': f.gris,
+          'Distância': f.distancia,
+          'Pedágio': f.pedagio,
+          'Extras': f.custosExtras,
+          'Tipo Carga': f.tipoCarga,
+          'Eixos': f.quantidadeEixos,
+          'Status ANTT': f.statusAntt,
+          'TransÁgil': f.transAgil,
+          'Margem Bruta': f.margemBruta,
+          'Sem Rec.': f.resultadoSemRecuperacao,
+          'Rec. Fiscal': f.resultadoRecuperacao,
+          'TransÁgil Resultado': f.resultadoTransAgil,
+          'Observações': f.observacoes
+        };
+      });
+
+      const ws = XLSX.utils.json_to_sheet(dados);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Fretes_Enviados");
+      XLSX.writeFile(wb, 'Historico_Fretes_' + new Date().toISOString().slice(0, 10) + '.xlsx');
+    });
+
+    function clonarAnttPadrao() { return JSON.parse(JSON.stringify(ANTT_PADRAO)); }
+
+    function obterTabelaAntt() {
+      try {
+        const salva = localStorage.getItem(ANTT_STORAGE_KEY);
+        if (salva) return JSON.parse(salva);
+      } catch (e) {}
+      return clonarAnttPadrao();
+    }
+
+    function renderizarAntt(tabela) {
+      const tbody = document.getElementById('anttTabelaBody');
+      tbody.innerHTML = '';
+      tabela.forEach(function(linha, indice) {
+        const tr = document.createElement('tr');
+        tr.innerHTML =
+          '<td class="tipo-cell"><input data-antt-row="' + indice + '" data-antt-field="tipo" value="' + linha.tipo + '"></td>' +
+          '<td class="carga-cell"><input data-antt-row="' + indice + '" data-antt-field="carga" value="' + linha.carga + '"></td>' +
+          '<td class="coef-cell"><input data-antt-row="' + indice + '" data-antt-field="coeficiente" value="' + linha.coeficiente + '"></td>' +
+          '<td class="unidade-cell"><input data-antt-row="' + indice + '" data-antt-field="unidade" value="' + linha.unidade + '"></td>' +
+          ANTT_EIXOS.map(function(eixo, eixoIndice) {
+            return '<td><input data-antt-row="' + indice + '" data-antt-eixo="' + eixoIndice + '" value="' + (linha.valores[eixoIndice] || '') + '"></td>';
+          }).join('');
+        tbody.appendChild(tr);
+      });
+    }
+
+    document.getElementById('salvarAntt').addEventListener('click', function() {
+      const tabela = obterTabelaAntt();
+      document.querySelectorAll('[data-antt-row]').forEach(function(input) {
+        const linha = tabela[Number(input.dataset.anttRow)];
+        if (input.dataset.anttField) linha[input.dataset.anttField] = input.value;
+        if (input.dataset.anttEixo) linha.valores[Number(input.dataset.anttEixo)] = input.value;
+      });
+      localStorage.setItem(ANTT_STORAGE_KEY, JSON.stringify(tabela));
+      const blob = new Blob([JSON.stringify(tabela, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'antt-tabela.json';
+      link.click();
+    });
+
+    CAMPOS_MOEDA.forEach(function(id) {
+      document.getElementById(id).addEventListener('input', function() {
+        formatarMoeda(this); calcular(); salvarDados();
+      });
+    });
+
+    document.getElementById('gris').addEventListener('input', function() {
+      formatarPercentual(this); calcular(); salvarDados();
+    });
+
+    document.querySelectorAll('[data-transagil]').forEach(function(botao) {
+      botao.addEventListener('click', function() {
+        selecionarTransAgil(this.dataset.transagil); calcular(); salvarDados();
+      });
+    });
+
+    document.getElementById('abrirManual').addEventListener('click', abrirManual);
+    document.getElementById('fecharManual').addEventListener('click', fecharManual);
+    document.getElementById('abrirAntt').addEventListener('click', abrirAntt);
+    document.getElementById('fecharAntt').addEventListener('click', fecharAntt);
+    document.getElementById('abrirFretes').addEventListener('click', abrirFretes);
+    document.getElementById('fecharFretes').addEventListener('click', fecharFretes);
+    
+    document.addEventListener('keydown', function(evento) {
+      if (evento.key === 'Escape') { fecharManual(); fecharAntt(); fecharFretes(); }
+    });
+
+    
+document.getElementById('tipoCarga').addEventListener('change', function() {
+  calcular();
+  salvarDados();
+});
+
+document.getElementById('quantidadeEixos').addEventListener('change', function() {
+  calcular();
+  salvarDados();
+});
+
+camposSalvar.forEach(function(id) {
+
+      if (!CAMPOS_MOEDA.includes(id) && id !== 'gris' && id !== 'transAgil' && id !== 'idAtual') {
+        document.getElementById(id).addEventListener('input', function() {
+          calcular(); salvarDados();
+        });
+      }
+    });
+
+    document.querySelectorAll('input[required], select[required]').forEach(function(campo) {
+      campo.addEventListener('input', function() { this.classList.remove('erro-validacao'); });
+    });
+
+    
+['filtroId','filtroData','filtroEmbarcador','filtroTransportador','filtroOrigem','filtroDestino']
+.forEach(function(id) {
+  const campo = document.getElementById(id);
+  if (campo) {
+    campo.addEventListener('input', renderizarFretesEnviados);
+  }
+});
+
+document.getElementById('dataHora').innerHTML = new Date().toLocaleString('pt-BR');
+
+    renderizarAntt(obterTabelaAntt());
+    renderizarFretesEnviados();
+
+    
+    
+
+
+    
+
+    
+    document.getElementById('cadastroOverlay').addEventListener('click', function(e) {
+      if (e.target === this) {
+        fecharCadastros();
+      }
+    });
+
+
+window.onload = function() { carregarDados(); };
+
+  </script>
+</body>
+</html>

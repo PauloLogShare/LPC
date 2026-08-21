@@ -14,9 +14,27 @@ export function processarDados(dados) {
       rotasDisponibilizadas: numero(item["Rotas Disponibilizadas"]),
       rotasSinergia: numero(item["Rotas com Sinergia"] || item["Rotas com Match"]),
       oportunidades: numero(item["Oportunidades Identificadas"]),
-      rotasExecutadas: numero(item["Rotas Executadas"]),
-      embarquesPlanejados: numero(item["Embarques Planejados"]),
-      embarquesRealizados: numero(item["Embarques Realizados"]),
+      rotasExecutadas: numero(item["Rotas Executadas"] || item["Rotas Realizadas"] || item["Embarques Realizados"]),
+      embarquesPlanejados: numero(
+        item["Embarques Planejados"] ||
+        item["Rotas Planejadas"] ||
+        item["Viagens Planejadas"] ||
+        item["Planejado"] ||
+        item["Embarques Ofertados"] ||
+        item["Rotas Ofertadas"] ||
+        item["Quantidade Ofertada"] ||
+        item["Qtd Ofertada"]
+      ),
+      embarquesRealizados: numero(
+        item["Embarques Realizados"] ||
+        item["Rotas Executadas"] ||
+        item["Rotas Realizadas"] ||
+        item["Viagens Realizadas"] ||
+        item["Realizado"] ||
+        item["Embarques Executados"] ||
+        item["Quantidade Realizada"] ||
+        item["Qtd Realizada"]
+      ),
       usuariosAtivos: numero(item["Usuários Ativos"]),
       saas: numero(item["SAAS (R$)"]),
       baseline: numero(item["Custo Baseline Atual (R$)"]),

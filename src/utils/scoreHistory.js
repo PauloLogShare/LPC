@@ -296,7 +296,7 @@ export function calcularHistoricoScore(
         // em relação ao mês anterior.
         // ====================================
 
-        let volume = null;
+        let volume = 0;
 
         if (
           indice > 0 &&
@@ -331,6 +331,8 @@ export function calcularHistoricoScore(
               ) *
               100;
 
+          } else {
+            volume = embarquesAtual > 0 ? 100 : 0;
           }
 
         }
@@ -835,7 +837,8 @@ function calcularAderenciaAnterior(
     );
 
   if (
-    planejados === 0
+    planejados <= 0 ||
+    realizados <= 0
   ) {
     return 0;
   }
@@ -936,7 +939,7 @@ function calcularVolumeAnterior(
   if (
     indice < 2
   ) {
-    return null;
+    return 0;
   }
 
   const referenciaAnterior =
@@ -963,7 +966,7 @@ function calcularVolumeAnterior(
     !registrosAnterior ||
     !registrosRetrasado
   ) {
-    return null;
+    return 0;
   }
 
   const anterior =
@@ -987,7 +990,7 @@ function calcularVolumeAnterior(
   if (
     retrasado === 0
   ) {
-    return null;
+    return anterior > 0 ? 100 : 0;
   }
 
   return (
