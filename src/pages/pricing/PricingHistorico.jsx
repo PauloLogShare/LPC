@@ -135,153 +135,277 @@ export default function PricingHistorico({ onFechar, onRestaurar }) {
 
   const isModal = Boolean(onFechar);
 
+  function extrairNumero(v) {
+    if (!v) return 0;
+    if (typeof v === 'number') return v;
+    const limpo = String(v).replace(/[^\d,-]/g, '').replace(',', '.');
+    return parseFloat(limpo) || 0;
+  }
+
+  const totalReceber = listafiltrada.reduce((acc, f) => acc + extrairNumero(f.valorReceber), 0);
+  const totalPagar = listafiltrada.reduce((acc, f) => acc + extrairNumero(f.valorPagar), 0);
+  const margens = listafiltrada.map(f => extrairNumero(f.margemBruta)).filter(v => !isNaN(v));
+  const margemMedia = margens.length > 0 ? (margens.reduce((a, b) => a + b, 0) / margens.length) : 0;
+
   const content = (
-    <div style={isModal ? st.panelModal : st.panelPage}>
-      <div style={st.header}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', width: '100%' }}>
+      {/* ── Toolbar / Cabeçalho Idêntico a Parâmetros Gerais & Calculadora ─────────── */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
         <div>
-          <div style={{ color: '#fff', fontWeight: '800', fontSize: '18px' }}>
+          <h2 className="lpc-section-title" style={{ margin: 0, fontSize: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
             📤 Histórico de Fretes Enviados para Aprovação
-          </div>
-          <div style={{ color: '#94a3b8', fontSize: '12px', marginTop: '2px' }}>
-            {listafiltrada.length} de {lista.length} registros exibidos · Exportação Excel e sincronização JSON multi-usuário
+          </h2>
+          <div style={{ fontSize: '10.5px', color: '#94a3b8', marginTop: '1px' }}>
+            Registro de propostas de frete, margens comerciais, status de aprovação e exportação de dados
           </div>
         </div>
-        {isModal && (
-          <button onClick={onFechar} style={{ background: 'rgba(255,255,255,0.12)', border: 'none', color: '#fff', borderRadius: '8px', width: '34px', height: '34px', cursor: 'pointer', fontSize: '18px' }}>×</button>
-        )}
+        <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'center' }}>
+          <button type="button" onClick={handleExportarExcel} style={{ ...toolBtn, background: '#16a34a', color: '#fff', fontWeight: '800' }}>
+            📊 Exportar Excel (.xlsx)
+          </button>
+          <button type="button" onClick={handleExportarJSON} style={toolBtn}>
+            📤 Backup JSON
+          </button>
+          <button type="button" onClick={handleImportarJSON} style={toolBtn}>
+            📥 Importar JSON
+          </button>
+          {isModal && (
+            <button onClick={onFechar} style={{ ...toolBtn, color: '#64748b' }}>
+              ✕ Fechar
+            </button>
+          )}
+        </div>
       </div>
 
-      <div style={st.actions}>
-        <button style={st.btn('green')} onClick={handleExportarExcel}>📊 Exportar Excel (.xlsx)</button>
-        <button style={st.btn('blue')}  onClick={handleExportarJSON}>📤 Exportar Backup JSON</button>
-        <button style={st.btn('')}      onClick={handleImportarJSON}>📥 Importar Backup JSON</button>
+      {/* ── 4 KPIs no Padrão do Pricing Center ─────────────────────────────── */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px' }}>
+        <div style={{ ...kpiCardSt, borderLeft: '4px solid #0369a1' }}>
+          <div style={kpiTitleSt}>Propostas Registradas</div>
+          <div style={{ fontSize: '15px', fontWeight: '900', color: '#0369a1', margin: '3px 0' }}>
+            {listafiltrada.length} <span style={{ fontSize: '11px', color: '#64748b', fontWeight: '500' }}>de {lista.length}</span>
+          </div>
+          <div style={{ fontSize: '9.5px', color: '#64748b' }}>
+            {listafiltrada.filter(f => f.statusAprovacao === 'aprovado').length} Aprovadas | {listafiltrada.filter(f => !f.statusAprovacao || f.statusAprovacao === 'pendente').length} Pendentes
+          </div>
+        </div>
+
+        <div style={{ ...kpiCardSt, borderLeft: '4px solid #15803d' }}>
+          <div style={kpiTitleSt}>Receita Total (Receber)</div>
+          <div style={{ fontSize: '15px', fontWeight: '900', color: '#15803d', margin: '3px 0' }}>
+            R$ {totalReceber.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+          </div>
+          <div style={{ fontSize: '9.5px', color: '#64748b' }}>Valor bruto a receber das propostas</div>
+        </div>
+
+        <div style={{ ...kpiCardSt, borderLeft: '4px solid #dc2626' }}>
+          <div style={kpiTitleSt}>Custo Total (Pagar)</div>
+          <div style={{ fontSize: '15px', fontWeight: '900', color: '#dc2626', margin: '3px 0' }}>
+            R$ {totalPagar.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+          </div>
+          <div style={{ fontSize: '9.5px', color: '#64748b' }}>Valor pago aos parceiros transportadores</div>
+        </div>
+
+        <div style={{ ...kpiCardSt, borderLeft: '4px solid #d97706' }}>
+          <div style={kpiTitleSt}>Margem Bruta Média</div>
+          <div style={{ fontSize: '15px', fontWeight: '900', color: '#d97706', margin: '3px 0' }}>
+            {margemMedia.toFixed(1)}%
+          </div>
+          <div style={{ fontSize: '9.5px', color: '#64748b' }}>Média ponderada do histórico filtrado</div>
+        </div>
       </div>
 
-      <div style={st.filters}>
-        <input style={st.filterInput} placeholder="🔍 Filtrar ID" value={filtros.id} onChange={(e) => handleFiltro('id', e.target.value)} />
-        <input style={st.filterInput} type="date" value={filtros.data} onChange={(e) => handleFiltro('data', e.target.value)} />
-        <input style={st.filterInput} placeholder="Embarcador" value={filtros.embarcador} onChange={(e) => handleFiltro('embarcador', e.target.value)} />
-        <input style={st.filterInput} placeholder="Parceiro" value={filtros.parceiro} onChange={(e) => handleFiltro('parceiro', e.target.value)} />
-        <input style={st.filterInput} placeholder="Origem" value={filtros.origem} onChange={(e) => handleFiltro('origem', e.target.value)} />
-        <input style={st.filterInput} placeholder="Destino" value={filtros.destino} onChange={(e) => handleFiltro('destino', e.target.value)} />
-      </div>
+      {/* ── Painel de Conteúdo: Filtros & Tabela ─────────────────────────────── */}
+      <div style={{ background: '#fff', borderRadius: '8px', border: '1px solid #e2e8f0', boxShadow: '0 1px 4px rgba(15,23,42,0.05)', padding: '16px' }}>
+        {/* Barra de Filtros */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '8px', marginBottom: '14px', background: '#f8fafc', padding: '10px', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
+          <input style={filterInputSt} placeholder="🔍 ID Proposta" value={filtros.id} onChange={(e) => handleFiltro('id', e.target.value)} />
+          <input style={filterInputSt} type="date" value={filtros.data} onChange={(e) => handleFiltro('data', e.target.value)} />
+          <input style={filterInputSt} placeholder="Embarcador" value={filtros.embarcador} onChange={(e) => handleFiltro('embarcador', e.target.value)} />
+          <input style={filterInputSt} placeholder="Parceiro" value={filtros.parceiro} onChange={(e) => handleFiltro('parceiro', e.target.value)} />
+          <input style={filterInputSt} placeholder="Origem" value={filtros.origem} onChange={(e) => handleFiltro('origem', e.target.value)} />
+          <input style={filterInputSt} placeholder="Destino" value={filtros.destino} onChange={(e) => handleFiltro('destino', e.target.value)} />
+        </div>
 
-      <div style={st.tableWrap}>
-        <table style={st.table}>
-          <thead>
-            <tr>
-              <th style={st.th}>Ações</th>
-              <th style={st.th}>ID</th>
-              <th style={st.th}>Data/Hora</th>
-              <th style={st.th}>Embarcador</th>
-              <th style={st.th}>Parceiro</th>
-              <th style={st.th}>Origem</th>
-              <th style={st.th}>Destino</th>
-              <th style={st.th}>Receber</th>
-              <th style={st.th}>Pagar</th>
-              <th style={st.th}>M. Bruta</th>
-              <th style={st.th}>Sem Rec.</th>
-              <th style={st.th}>Com Rec.</th>
-              <th style={st.th}>TransÁgil</th>
-              <th style={st.th}>Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            {listafiltrada.length === 0 ? (
-              <tr>
-                <td colSpan={14} style={{ ...st.td, textAlign: 'center', color: '#94a3b8', padding: '32px' }}>
-                  Nenhum frete encontrado no histórico.
-                </td>
+        {/* Tabela de Histórico */}
+        <div style={{ overflowX: 'auto', border: '1px solid #e2e8f0', borderRadius: '6px' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '11.5px' }}>
+            <thead>
+              <tr style={{ background: '#f8fafc', borderBottom: '2px solid #e2e8f0' }}>
+                <th style={thSt}>Ações</th>
+                <th style={thSt}>ID</th>
+                <th style={thSt}>Data/Hora</th>
+                <th style={thSt}>Embarcador</th>
+                <th style={thSt}>Parceiro</th>
+                <th style={thSt}>Origem</th>
+                <th style={thSt}>Destino</th>
+                <th style={thSt}>Receber</th>
+                <th style={thSt}>Pagar</th>
+                <th style={thSt}>M. Bruta</th>
+                <th style={thSt}>Sem Rec.</th>
+                <th style={thSt}>Com Rec.</th>
+                <th style={thSt}>TransÁgil</th>
+                <th style={thSt}>Status</th>
               </tr>
-            ) : listafiltrada.map((f) => (
-              <tr key={f.id} style={{ background: '#fff' }}
-                onMouseEnter={(e) => e.currentTarget.style.background = '#f8fafc'}
-                onMouseLeave={(e) => e.currentTarget.style.background = '#fff'}
-              >
-                <td style={st.td}>
-                  {onRestaurar && (
-                    <button onClick={() => handleRestaurarClick(f)}
-                      style={{ padding: '5px 9px', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '13px', background: '#e0f2fe', marginRight: '6px', fontWeight: '700', color: '#0369a1' }}
-                      title="Restaurar proposta no Simulador">🔄 Restaurar</button>
-                  )}
-                  <button onClick={() => handleDeletar(f.id)}
-                    style={{ padding: '5px 9px', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '13px', background: '#fee2e2', color: '#dc2626' }}
-                    title="Excluir do Histórico">🗑️</button>
-                </td>
-                <td style={{ ...st.td, fontWeight: '800', color: '#052a67' }}>#{f.id}</td>
-                <td style={{ ...st.td, color: '#64748b' }}>{f.dataHora}</td>
-                <td style={{ ...st.td, fontWeight: '700' }}>{f.embarcador}</td>
-                <td style={st.td}>{f.parceiro}</td>
-                <td style={st.td}>{f.origem}</td>
-                <td style={st.td}>{f.destino}</td>
-                <td style={{ ...st.td, fontWeight: '700', color: '#16a34a' }}>{f.valorReceber}</td>
-                <td style={{ ...st.td, fontWeight: '700', color: '#dc2626' }}>{f.valorPagar}</td>
-                <td style={{ ...st.td, fontWeight: '800', color: margemCor(parseFloat(f.margemBruta)) }}>{f.margemBruta}</td>
-                <td style={st.td}>{f.resultadoSemRecuperacao}</td>
-                <td style={st.td}>{f.resultadoComRecuperacao}</td>
-                <td style={st.td}>{f.resultadoTransAgil}</td>
-                <td style={st.td}>
-                  <span style={{
-                    padding: '3px 8px', borderRadius: '6px', fontSize: '11px', fontWeight: '800',
-                    background: f.statusAprovacao === 'aprovado' ? '#dcfce7' : '#fef3c7',
-                    color: f.statusAprovacao === 'aprovado' ? '#166534' : '#92400e',
-                  }}>
-                    {f.statusAprovacao || 'pendente'}
-                  </span>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {listafiltrada.length === 0 ? (
+                <tr>
+                  <td colSpan={14} style={{ textAlign: 'center', color: '#94a3b8', padding: '32px', fontSize: '12px' }}>
+                    Nenhum frete encontrado no histórico.
+                  </td>
+                </tr>
+              ) : listafiltrada.map((f) => (
+                <tr
+                  key={f.id}
+                  style={{ background: '#fff', borderBottom: '1px solid #f1f5f9' }}
+                  onMouseEnter={(e) => e.currentTarget.style.background = '#f8fafc'}
+                  onMouseLeave={(e) => e.currentTarget.style.background = '#fff'}
+                >
+                  <td style={tdSt}>
+                    {onRestaurar && (
+                      <button
+                        type="button"
+                        onClick={() => handleRestaurarClick(f)}
+                        style={{ padding: '4px 8px', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '11px', background: '#e0f2fe', marginRight: '4px', fontWeight: '700', color: '#0369a1' }}
+                        title="Restaurar proposta no Simulador"
+                      >
+                        🔄 Restaurar
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => handleDeletar(f.id)}
+                      style={{ padding: '4px 8px', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '11px', background: '#fee2e2', color: '#dc2626' }}
+                      title="Excluir do Histórico"
+                    >
+                      🗑️
+                    </button>
+                  </td>
+                  <td style={{ ...tdSt, fontWeight: '800', color: '#052a67' }}>#{f.id}</td>
+                  <td style={{ ...tdSt, color: '#64748b' }}>{f.dataHora}</td>
+                  <td style={{ ...tdSt, fontWeight: '700', color: '#1e293b' }}>{f.embarcador}</td>
+                  <td style={tdSt}>{f.parceiro}</td>
+                  <td style={tdSt}>{f.origem}</td>
+                  <td style={tdSt}>{f.destino}</td>
+                  <td style={{ ...tdSt, fontWeight: '700', color: '#16a34a' }}>{f.valorReceber}</td>
+                  <td style={{ ...tdSt, fontWeight: '700', color: '#dc2626' }}>{f.valorPagar}</td>
+                  <td style={{ ...tdSt, fontWeight: '800', color: margemCor(parseFloat(f.margemBruta)) }}>{f.margemBruta}</td>
+                  <td style={tdSt}>{f.resultadoSemRecuperacao}</td>
+                  <td style={tdSt}>{f.resultadoComRecuperacao}</td>
+                  <td style={tdSt}>{f.resultadoTransAgil}</td>
+                  <td style={tdSt}>
+                    <span style={{
+                      padding: '2px 8px', borderRadius: '4px', fontSize: '10.5px', fontWeight: '800',
+                      background: f.statusAprovacao === 'aprovado' ? '#dcfce7' : '#fef3c7',
+                      color: f.statusAprovacao === 'aprovado' ? '#166534' : '#92400e',
+                    }}>
+                      {f.statusAprovacao || 'pendente'}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );
 
   if (isModal) {
     return (
-      <div style={st.overlay} onClick={(e) => e.target === e.currentTarget && onFechar()}>
-        {content}
+      <div style={modalOverlaySt} onClick={(e) => e.target === e.currentTarget && onFechar()}>
+        <div style={modalContentSt}>
+          {content}
+        </div>
       </div>
     );
   }
 
-  return <div style={{ padding: '8px' }}>{content}</div>;
+  return content;
 }
 
-const st = {
-  overlay: {
-    position: 'fixed', inset: 0, zIndex: 200,
-    background: 'rgba(15,23,42,0.55)',
-    display: 'flex', alignItems: 'stretch', justifyContent: 'flex-end',
-    padding: '10px',
-  },
-  panelModal: {
-    width: 'min(1200px, 98vw)', maxHeight: 'calc(100vh - 20px)',
-    overflow: 'auto', background: '#fff', borderRadius: '12px',
-    boxShadow: '0 24px 60px rgba(15,23,42,0.22)', display: 'flex', flexDirection: 'column',
-  },
-  panelPage: {
-    background: '#fff', borderRadius: '12px',
-    boxShadow: '0 2px 8px rgba(15,23,42,0.06)',
-    border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column',
-    overflow: 'hidden',
-  },
-  header: {
-    background: 'linear-gradient(135deg, #052a67, #031d47)',
-    padding: '18px 24px',
-    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-  },
-  actions: { display: 'flex', gap: '10px', padding: '14px 20px', borderBottom: '1px solid #e2e8f0', flexWrap: 'wrap', alignItems: 'center', background: '#f8fafc' },
-  filters: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '10px', padding: '12px 20px', borderBottom: '1px solid #e2e8f0', background: '#fff' },
-  filterInput: { padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '12px', background: '#f8fafc', fontWeight: '600' },
-  tableWrap: { overflow: 'auto', maxHeight: 'calc(100vh - 280px)' },
-  table: { width: 'max-content', minWidth: '100%', borderCollapse: 'collapse', fontSize: '12px' },
-  th: { padding: '10px 14px', background: '#f1f5f9', fontWeight: '800', color: '#475569', textAlign: 'left', borderBottom: '2px solid #e2e8f0', whiteSpace: 'nowrap', position: 'sticky', top: 0, zIndex: 2 },
-  td: { padding: '10px 14px', borderBottom: '1px solid #f1f5f9', whiteSpace: 'nowrap', verticalAlign: 'middle' },
-  btn: (cor) => ({
-    padding: '9px 16px', border: 'none', borderRadius: '8px',
-    fontWeight: '800', cursor: 'pointer', fontSize: '12px',
-    background: cor === 'green' ? '#16a34a' : cor === 'blue' ? '#0369a1' : cor === 'red' ? '#dc2626' : '#e2e8f0',
-    color: ['green','blue','red'].includes(cor) ? '#fff' : '#052a67',
-  }),
+const toolBtn = {
+  fontSize: '11px',
+  fontWeight: '700',
+  padding: '6px 12px',
+  borderRadius: '6px',
+  border: '1px solid #e2e8f0',
+  cursor: 'pointer',
+  background: '#fff',
+  color: '#334155',
+  display: 'flex',
+  alignItems: 'center',
+  gap: '4px',
+  boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
+};
+
+const kpiCardSt = {
+  background: '#fff',
+  border: '1px solid #e2e8f0',
+  borderRadius: '8px',
+  padding: '8px 12px',
+  boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
+};
+
+const kpiTitleSt = {
+  fontSize: '10px',
+  fontWeight: '800',
+  color: '#64748b',
+  textTransform: 'uppercase',
+  letterSpacing: '0.04em',
+};
+
+const filterInputSt = {
+  padding: '6px 10px',
+  border: '1px solid #cbd5e1',
+  borderRadius: '6px',
+  fontSize: '11.5px',
+  background: '#fff',
+  fontWeight: '600',
+  color: '#334155',
+  outline: 'none',
+};
+
+const thSt = {
+  padding: '9px 12px',
+  fontWeight: '800',
+  color: '#475569',
+  textAlign: 'left',
+  whiteSpace: 'nowrap',
+  fontSize: '11px',
+  textTransform: 'uppercase',
+  letterSpacing: '0.03em',
+};
+
+const tdSt = {
+  padding: '8px 12px',
+  whiteSpace: 'nowrap',
+  verticalAlign: 'middle',
+};
+
+const modalOverlaySt = {
+  position: 'fixed',
+  top: 0,
+  left: 0,
+  right: 0,
+  bottom: 0,
+  zIndex: 9999,
+  background: 'rgba(15,23,42,0.65)',
+  backdropFilter: 'blur(4px)',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  padding: '16px',
+};
+
+const modalContentSt = {
+  maxWidth: '1200px',
+  width: '100%',
+  maxHeight: '92vh',
+  overflowY: 'auto',
+  background: '#f8fafc',
+  borderRadius: '12px',
+  border: '1px solid #e2e8f0',
+  boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)',
+  padding: '16px',
 };

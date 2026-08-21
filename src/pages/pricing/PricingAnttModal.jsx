@@ -91,126 +91,242 @@ export default function PricingAnttModal({ tabela: tabelaProp, onSave, onFechar 
   const isModal = Boolean(onFechar);
 
   const content = (
-    <div style={isModal ? st.panelModal : st.panelPage}>
-      <div style={st.header}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', width: '100%' }}>
+      {/* ── Toolbar / Cabeçalho Idêntico a Parâmetros Gerais & Calculadora ─────────── */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
         <div>
-          <div style={{ color: '#fff', fontWeight: '800', fontSize: '18px' }}>
+          <h2 className="lpc-section-title" style={{ margin: 0, fontSize: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
             📋 Tabela ANTT (Piso Mínimo Regulamentado)
-          </div>
-          <div style={{ color: '#94a3b8', fontSize: '12px', marginTop: '2px' }}>
-            {linhas.length} tipos de carga regulamentados · Coeficientes CCD (R$/km) e CC (R$)
+          </h2>
+          <div style={{ fontSize: '10.5px', color: '#94a3b8', marginTop: '1px' }}>
+            Coeficientes de custo de deslocamento (CCD em R$/km) e carga/descarga (CC em R$) da tabela oficial
           </div>
         </div>
-        {isModal && (
-          <button
-            onClick={onFechar}
-            style={{ background: 'rgba(255,255,255,0.12)', border: 'none', color: '#fff', borderRadius: '8px', width: '34px', height: '34px', cursor: 'pointer', fontSize: '18px' }}
-          >×</button>
-        )}
+        <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'center' }}>
+          {status && (
+            <span style={{ background: '#16a34a', color: '#fff', padding: '4px 10px', borderRadius: '6px', fontSize: '11px', fontWeight: '800' }}>
+              {status}
+            </span>
+          )}
+          <button type="button" onClick={handleSalvar} style={{ ...toolBtn, background: '#14b8a6', color: '#fff', fontWeight: '800' }}>
+            💾 Salvar Tabela
+          </button>
+          <button type="button" onClick={handleExportarBackup} style={toolBtn}>
+            📤 Backup JSON
+          </button>
+          <button type="button" onClick={handleImportarBackup} style={toolBtn}>
+            📥 Importar JSON
+          </button>
+          <button type="button" onClick={handleRestaurar} style={toolBtn}>
+            🔄 Restaurar Padrões
+          </button>
+          {isModal && (
+            <button onClick={onFechar} style={{ ...toolBtn, color: '#64748b' }}>
+              ✕ Fechar
+            </button>
+          )}
+        </div>
       </div>
 
-      <div style={st.actions}>
-        <button style={{ ...st.btn, background: '#14b8a6', color: '#fff' }} onClick={handleSalvar}>
-          💾 Salvar Tabela
-        </button>
-        <button style={{ ...st.btn, background: '#e2e8f0', color: '#052a67' }} onClick={handleExportarBackup}>
-          📤 Exportar Backup JSON
-        </button>
-        <button style={{ ...st.btn, background: '#e2e8f0', color: '#052a67' }} onClick={handleImportarBackup}>
-          📥 Importar Backup JSON
-        </button>
-        <button style={{ ...st.btn, background: '#fee2e2', color: '#991b1b' }} onClick={handleRestaurar}>
-          Restaurar Padrão Oficial
-        </button>
-        {status && <span style={{ fontSize: '13px', fontWeight: '700', color: '#16a34a', alignSelf: 'center', marginLeft: '8px' }}>{status}</span>}
+      {/* ── 4 KPIs no Padrão do Pricing Center ─────────────────────────────── */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px' }}>
+        <div style={{ ...kpiCardSt, borderLeft: '4px solid #0369a1' }}>
+          <div style={kpiTitleSt}>Categorias de Carga</div>
+          <div style={{ fontSize: '15px', fontWeight: '900', color: '#0369a1', margin: '3px 0' }}>
+            12 Categorias
+          </div>
+          <div style={{ fontSize: '9.5px', color: '#64748b' }}>Geral, Granel, Frigorificada, Perigosa...</div>
+        </div>
+
+        <div style={{ ...kpiCardSt, borderLeft: '4px solid #7c3aed' }}>
+          <div style={kpiTitleSt}>Configuração de Eixos</div>
+          <div style={{ fontSize: '15px', fontWeight: '900', color: '#7c3aed', margin: '3px 0' }}>
+            7 Configurações
+          </div>
+          <div style={{ fontSize: '9.5px', color: '#64748b' }}>De 2 até 9 eixos (VUC a Rodotrem)</div>
+        </div>
+
+        <div style={{ ...kpiCardSt, borderLeft: '4px solid #d97706' }}>
+          <div style={kpiTitleSt}>Coeficientes Cadastrados</div>
+          <div style={{ fontSize: '15px', fontWeight: '900', color: '#d97706', margin: '3px 0' }}>
+            {linhas.length} Coeficientes
+          </div>
+          <div style={{ fontSize: '9.5px', color: '#64748b' }}>CCD (Deslocamento) e CC (Carga/Descarga)</div>
+        </div>
+
+        <div style={{ ...kpiCardSt, borderLeft: '4px solid #15803d' }}>
+          <div style={kpiTitleSt}>Regulamentação Oficial</div>
+          <div style={{ fontSize: '15px', fontWeight: '900', color: '#15803d', margin: '3px 0' }}>
+            Piso Vigente
+          </div>
+          <div style={{ fontSize: '9.5px', color: '#64748b' }}>Resolução ANTT Atualizada</div>
+        </div>
       </div>
 
-      <div style={st.tableWrap}>
-        <table style={st.table}>
-          <thead>
-            <tr>
-              <th style={st.th}>Tipo</th>
-              <th style={st.th}>Tipo de Carga</th>
-              <th style={st.th}>Coef.</th>
-              <th style={st.th}>Unidade</th>
-              {ANTT_EIXOS.map((e) => (
-                <th key={e} style={st.th}>{e} eixos</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {linhas.map((linha, rowIdx) => (
-              <tr key={rowIdx} style={{ background: rowIdx % 2 === 0 ? '#fff' : '#f8fafc' }}>
-                <td style={st.td}>
-                  <input style={{ ...st.cellInput, width: '40px' }} value={linha.tipo} onChange={(e) => handleCellChange(rowIdx, 'tipo', e.target.value)} />
-                </td>
-                <td style={st.td}>
-                  <input style={{ ...st.cellInput, width: '220px' }} value={linha.carga} onChange={(e) => handleCellChange(rowIdx, 'carga', e.target.value)} />
-                </td>
-                <td style={st.td}>
-                  <input style={{ ...st.cellInput, width: '50px' }} value={linha.coeficiente} onChange={(e) => handleCellChange(rowIdx, 'coeficiente', e.target.value)} />
-                </td>
-                <td style={st.td}>
-                  <input style={{ ...st.cellInput, width: '60px' }} value={linha.unidade} onChange={(e) => handleCellChange(rowIdx, 'unidade', e.target.value)} />
-                </td>
-                {ANTT_EIXOS.map((_, eixoIdx) => (
-                  <td key={eixoIdx} style={st.td}>
-                    <input style={st.cellInput} value={linha.valores[eixoIdx] || ''} onChange={(e) => handleEixoChange(rowIdx, eixoIdx, e.target.value)} />
-                  </td>
+      {/* ── Painel de Conteúdo: Tabela Editável ──────────────────────────────── */}
+      <div style={{ background: '#fff', borderRadius: '8px', border: '1px solid #e2e8f0', boxShadow: '0 1px 4px rgba(15,23,42,0.05)', padding: '16px' }}>
+        <div style={{ overflowX: 'auto', border: '1px solid #e2e8f0', borderRadius: '6px', maxHeight: 'calc(100vh - 280px)' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '11.5px' }}>
+            <thead>
+              <tr style={{ background: '#f8fafc', borderBottom: '2px solid #e2e8f0' }}>
+                <th style={thSt}>Tipo</th>
+                <th style={thSt}>Tipo de Carga</th>
+                <th style={thSt}>Coef.</th>
+                <th style={thSt}>Unidade</th>
+                {ANTT_EIXOS.map((e) => (
+                  <th key={e} style={{ ...thSt, textAlign: 'right' }}>{e} eixos</th>
                 ))}
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {linhas.map((linha, rowIdx) => (
+                <tr
+                  key={rowIdx}
+                  style={{ background: rowIdx % 2 === 0 ? '#fff' : '#f8fafc', borderBottom: '1px solid #f1f5f9' }}
+                  onMouseEnter={(e) => e.currentTarget.style.background = '#f1f5f9'}
+                  onMouseLeave={(e) => e.currentTarget.style.background = rowIdx % 2 === 0 ? '#fff' : '#f8fafc'}
+                >
+                  <td style={tdSt}>
+                    <input
+                      style={{ ...cellInputSt, width: '40px', textAlign: 'center' }}
+                      value={linha.tipo}
+                      onChange={(e) => handleCellChange(rowIdx, 'tipo', e.target.value)}
+                    />
+                  </td>
+                  <td style={tdSt}>
+                    <input
+                      style={{ ...cellInputSt, width: '220px' }}
+                      value={linha.carga}
+                      onChange={(e) => handleCellChange(rowIdx, 'carga', e.target.value)}
+                    />
+                  </td>
+                  <td style={tdSt}>
+                    <input
+                      style={{ ...cellInputSt, width: '55px', fontWeight: '800', color: '#0369a1', textAlign: 'center' }}
+                      value={linha.coeficiente}
+                      onChange={(e) => handleCellChange(rowIdx, 'coeficiente', e.target.value)}
+                    />
+                  </td>
+                  <td style={tdSt}>
+                    <input
+                      style={{ ...cellInputSt, width: '65px', textAlign: 'center' }}
+                      value={linha.unidade}
+                      onChange={(e) => handleCellChange(rowIdx, 'unidade', e.target.value)}
+                    />
+                  </td>
+                  {ANTT_EIXOS.map((_, eixoIdx) => (
+                    <td key={eixoIdx} style={{ ...tdSt, textAlign: 'right' }}>
+                      <input
+                        style={{ ...cellInputSt, width: '75px', textAlign: 'right' }}
+                        value={linha.valores[eixoIdx] || ''}
+                        onChange={(e) => handleEixoChange(rowIdx, eixoIdx, e.target.value)}
+                      />
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );
 
   if (isModal) {
     return (
-      <div style={st.overlay} onClick={(e) => e.target === e.currentTarget && onFechar()}>
-        {content}
+      <div style={modalOverlaySt} onClick={(e) => e.target === e.currentTarget && onFechar()}>
+        <div style={modalContentSt}>
+          {content}
+        </div>
       </div>
     );
   }
 
-  return <div style={{ padding: '8px' }}>{content}</div>;
+  return content;
 }
 
-const st = {
-  overlay: {
-    position: 'fixed', inset: 0, zIndex: 200,
-    background: 'rgba(15,23,42,0.55)',
-    display: 'flex', alignItems: 'stretch', justifyContent: 'flex-end',
-    padding: '10px',
-  },
-  panelModal: {
-    width: 'min(1100px, 98vw)', maxHeight: 'calc(100vh - 20px)',
-    overflow: 'auto', background: '#fff', borderRadius: '12px',
-    boxShadow: '0 24px 60px rgba(15,23,42,0.22)', display: 'flex', flexDirection: 'column',
-  },
-  panelPage: {
-    background: '#fff', borderRadius: '12px',
-    boxShadow: '0 2px 8px rgba(15,23,42,0.06)',
-    border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column',
-    overflow: 'hidden',
-  },
-  header: {
-    background: 'linear-gradient(135deg, #052a67, #031d47)',
-    padding: '18px 24px',
-    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-  },
-  actions: {
-    display: 'flex', gap: '10px', padding: '14px 20px',
-    borderBottom: '1px solid #e2e8f0', flexWrap: 'wrap', alignItems: 'center', background: '#f8fafc',
-  },
-  btn: { padding: '9px 16px', borderRadius: '8px', border: 'none', fontWeight: '800', cursor: 'pointer', fontSize: '12px' },
-  tableWrap: { overflow: 'auto', maxHeight: 'calc(100vh - 260px)' },
-  table: { width: '100%', borderCollapse: 'collapse', fontSize: '12px' },
-  th: { padding: '10px 12px', background: '#f1f5f9', fontWeight: '700', color: '#475569', textAlign: 'left', borderBottom: '2px solid #e2e8f0', whiteSpace: 'nowrap', position: 'sticky', top: 0, zIndex: 2 },
-  td: { padding: '5px 8px', borderBottom: '1px solid #f1f5f9' },
-  cellInput: {
-    width: '85px', padding: '6px 8px', border: '1px solid #cbd5e1',
-    borderRadius: '6px', fontSize: '12px', fontWeight: '600', background: '#fff',
-  },
+const toolBtn = {
+  fontSize: '11px',
+  fontWeight: '700',
+  padding: '6px 12px',
+  borderRadius: '6px',
+  border: '1px solid #e2e8f0',
+  cursor: 'pointer',
+  background: '#fff',
+  color: '#334155',
+  display: 'flex',
+  alignItems: 'center',
+  gap: '4px',
+  boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
+};
+
+const kpiCardSt = {
+  background: '#fff',
+  border: '1px solid #e2e8f0',
+  borderRadius: '8px',
+  padding: '8px 12px',
+  boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
+};
+
+const kpiTitleSt = {
+  fontSize: '10px',
+  fontWeight: '800',
+  color: '#64748b',
+  textTransform: 'uppercase',
+  letterSpacing: '0.04em',
+};
+
+const thSt = {
+  padding: '8px 10px',
+  fontWeight: '800',
+  color: '#475569',
+  textAlign: 'left',
+  whiteSpace: 'nowrap',
+  fontSize: '11px',
+  textTransform: 'uppercase',
+  letterSpacing: '0.03em',
+};
+
+const tdSt = {
+  padding: '4px 6px',
+  whiteSpace: 'nowrap',
+  verticalAlign: 'middle',
+};
+
+const cellInputSt = {
+  padding: '5px 7px',
+  border: '1px solid #cbd5e1',
+  borderRadius: '4px',
+  fontSize: '11.5px',
+  fontWeight: '600',
+  background: '#fff',
+  color: '#1e293b',
+  outline: 'none',
+};
+
+const modalOverlaySt = {
+  position: 'fixed',
+  top: 0,
+  left: 0,
+  right: 0,
+  bottom: 0,
+  zIndex: 9999,
+  background: 'rgba(15,23,42,0.65)',
+  backdropFilter: 'blur(4px)',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  padding: '16px',
+};
+
+const modalContentSt = {
+  maxWidth: '1200px',
+  width: '100%',
+  maxHeight: '92vh',
+  overflowY: 'auto',
+  background: '#f8fafc',
+  borderRadius: '12px',
+  border: '1px solid #e2e8f0',
+  boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)',
+  padding: '16px',
 };
